@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accounting Master: Dynamic Mock Tests</title>
+    <style>
+        :root { --primary: #1e293b; --success: #10b981; --error: #ef4444; --bg: #f8fafc; --accent: #6366f1; --nav: #3498db; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        .container { max-width: 800px; width: 100%; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; min-height: 550px; }
+        
+        .accounting-title { margin-bottom: 30px; }
+        .accounting-title h1 { color: var(--primary); font-size: 2.5em; margin-bottom: 5px; }
+        .title-bar { width: 100px; height: 4px; background: var(--nav); margin: 0 auto; border-radius: 2px; }
+
+        .test-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 30px; }
+        .test-card { background: var(--primary); color: white; padding: 25px; border-radius: 12px; cursor: pointer; font-size: 1.1em; font-weight: bold; transition: 0.3s; border: none; }
+        .test-card:hover { background: var(--accent); transform: translateY(-3px); }
+
+        .nav-info { display: flex; justify-content: space-between; margin-bottom: 25px; color: #64748b; font-weight: 600; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+        .question-text { font-size: 1.6em; color: #1e293b; margin-bottom: 30px; line-height: 1.4; min-height: 100px; }
+        
+        .answer-input { width: 90%; padding: 18px; font-size: 1.4em; border: 3px solid #e2e8f0; border-radius: 15px; text-align: center; outline: none; transition: 0.3s; margin-bottom: 20px; }
+        .answer-input:focus { border-color: var(--accent); }
+        
+        .btn { color: white; border: none; padding: 14px 24px; border-radius: 50px; cursor: pointer; font-weight: bold; margin: 5px; font-size: 1em; }
+        .btn-confirm { background: var(--success); width: 100%; max-width: 350px; font-size: 1.2em; }
+        .btn-sound { background: #64748b; }
+        .btn-spell { background: #f59e0b; }
+        .status-msg { margin-top: 25px; font-size: 1.3em; font-weight: bold; min-height: 1.5em; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="homeScreen">
+        <div class="accounting-title">
+            <h1>Accounting Mock Tests</h1>
+            <div class="title-bar"></div>
+            <p id="totalInfo" style="color: #64748b; margin-top: 15px;"></p>
+        </div>
+        <div class="test-grid" id="testGrid"></div>
+    </div>
+
+    <div id="quizScreen" class="hidden">
+        <div class="nav-info">
+            <span id="soundLabel">🔊 Sound: ON</span>
+            <span id="progressLabel"></span>
+        </div>
+        <p class="question-text" id="questionDisplay"></p>
+        <input type="text" id="userInput" class="answer-input" placeholder="Type answer here..." autocomplete="off">
+        <br>
+        <button class="btn btn-confirm" onclick="evaluateInput()">Confirm (Enter)</button>
+        <div class="status-msg" id="feedbackMsg"></div>
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #f1f5f9;">
+            <button class="btn btn-sound" onclick="toggleAudio()">🔇 Stop (M)</button>
+            <button class="btn btn-spell" onclick="spellCorrectAnswer()">🔤 Spell (Shift)</button>
+            <button class="btn" style="background: var(--accent)" onclick="repeatQ()">🔊 Repeat (R)</button>
+            <div style="margin-top: 15px;">
+                <button class="btn" style="background: var(--nav)" onclick="handlePrev()">← Previous</button>
+                <button class="btn" style="background: var(--nav)" onclick="handleNext()">Next →</button>
+                <button class="btn" style="background: #94a3b8" onclick="location.reload()">🏠 Home</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* ==========================================
+       QUESTION BANK (Add your questions here)
+       Format: { q: "Your Question?", a: "Answer" }
+       ========================================== */
+    const allQuestionsBank = [
+        { "id": 1, "q": "________ is the branch of knowledge that reveals how to keep a record of business transactions.", "a": "Book keeping" },
+{ "id": 2, "q": "The basic objective of book keeping is to have a ________ record of all business transactions.", "a": "Permanent" },
+{ "id": 3, "q": "AICPA means ___________.", "a": "American institute of certified public accountants" },
+{ "id": 4, "q": "AAA means ___________.", "a": "American accounting Association" },
+{ "id": 5, "q": "________ is a complete sequence of accounting processes that begins with the recording of business transactions and ends with preparation of final accounts.", "a": "The accounting cycle" },
+{ "id": 6, "q": "_______ refers to a systematic knowledge of accounting that covers rules, regulations principles, concepts and conventions and standards that govern the accounting process.", "a": "Accountancy" },
+{ "id": 7, "q": "_______ refers to the actual process of preparation and presenting the accounting information.", "a": "Accounting" },
+{ "id": 8, "q": "Accounting considers __________ transactions only.", "a": "Monetary" },
+{ "id": 9, "q": "A person who owns a business is called as a _________.", "a": "Proprietor" },
+{ "id": 10, "q": "The amount invested by the owner in the business is called _______.", "a": "Capital" },
+{ "id": 11, "q": "_______ can be classified into tangible and intangible.", "a": "Assets" },
+{ "id": 12, "q": "Assets that have a physical existence, seen and touched are called ______ assets.", "a": "Tangible" },
+{ "id": 13, "q": "Assets that have no physical existence, seen and touched are called ______ assets.", "a": "Intangible" },
+{ "id": 14, "q": "_______ refer to the financial obligation of a business.", "a": "Liabilities" },
+{ "id": 15, "q": "The amount of cash or value of goods withdrawn from the business by the proprietor for his personal use is called _________.", "a": "Drawings" },
+{ "id": 16, "q": "Debtors are shown as an ______ in the balance sheet.", "a": "Asset" },
+{ "id": 17, "q": "Creditor are shown as a _____ in the balance sheet.", "a": "Liability" },
+{ "id": 18, "q": "_______ is the difference between revenue and expense.", "a": "Income" },
+{ "id": 19, "q": "The necessary assumptions, conditions or postulates upon which the accounting is based are called _________.", "a": "Accounting Concepts" },
+{ "id": 20, "q": "The accounting procedures and practices which guides the accountant in the preparation of accounting records are called _________.", "a": "Accounting Principles" },
+{ "id": 21, "q": "The dual aspect principles is the basis for the _________ of book keeping.", "a": "Double entry system" },
+{ "id": 22, "q": "The concept of keeping the private affairs of the owner separate from the business affairs is called the ______ concept.", "a": "Business entity" },
+{ "id": 23, "q": "The customs or traditions guiding the preparation of accounts are called __________.", "a": "Accounting Conventions" },
+{ "id": 24, "q": "International accounting standards committee was set up in the year _________.", "a": "1973" },
+{ "id": 25, "q": "The accounting standards board was established in the year ___________.", "a": "1977" },
+{ "id": 26, "q": "The principles that guide and standardize accounting practices are called __________.", "a": "Accounting Standards" },
+{ "id": 27, "q": "The no. of Indian accounting standards at present which are universally acceptable all over the world is _________.", "a": "35" },
+{ "id": 28, "q": "IASC means _________.", "a": "International Accounting standards committee" },
+{ "id": 29, "q": "The concept of preparing financial statement to ascertain financial performance is called the ________.", "a": "Accounting period concept" },
+{ "id": 30, "q": "The period for which an operating statement is prepared is known as ________.", "a": "Accounting period" },
+{ "id": 31, "q": "The double entry book keeping system was invented by _________.", "a": "Luca pacioli" },
+{ "id": 32, "q": "The double entry system was invented in the year _________.", "a": "1494 AD" },
+{ "id": 33, "q": "The debit aspect and credit aspect form the basis of the _________.", "a": "Double entry system" },
+{ "id": 34, "q": "Capital + liability = _________.", "a": "Assets" },
+{ "id": 35, "q": "Assets – liability = _________.", "a": "Capital" },
+{ "id": 36, "q": "The accounting equation is based on the _______ concept.", "a": "Dual aspect" },
+{ "id": 37, "q": "The accounts which related to individuals or persons are known as ________ accounts.", "a": "Personal" },
+{ "id": 38, "q": "Accounts relating to properties and assets of the business concern are called ______ accounts.", "a": "Real" },
+{ "id": 39, "q": "Accounts which relate to income and expenses, gains or losses of a business concern are known as ________ accounts.", "a": "Nominal" },
+{ "id": 40, "q": "________ is called a book of original entry or book of primary entry.", "a": "A journal" },
+{ "id": 41, "q": "The process of recording the transaction in the journal is called ________.", "a": "Journalizing" },
+{ "id": 42, "q": "________ is a book in which an accounting transaction is written in accounting term.", "a": "A journal" },
+{ "id": 43, "q": "L.F means ________.", "a": "Ledger Folio" },
+{ "id": 44, "q": "Goodwill is a ______ Accounts.", "a": "Real" },
+{ "id": 45, "q": "Accounts that are not personal are called _________ accounts.", "a": "Impersonal" },
+{ "id": 46, "q": "_______ is also called book of secondary entry.", "a": "Ledger" },
+{ "id": 47, "q": "J.F means ___________.", "a": "Journal" },
+{ "id": 48, "q": "The book which contains all the set of accounts is called _________.", "a": "Ledger" },
+{ "id": 49, "q": "The left hand side of an accounts is known as the ______ side.", "a": "Debit" },
+{ "id": 50, "q": "The right hand side of an accounts is known as the ______ side.", "a": "Credit" },
+{ "id": 51, "q": "The process of transferring the entries recorded in the journal or subsidiary books to the respective accounts opened in the ledger is called _________.", "a": "Posting" },
+{ "id": 52, "q": "The difference between the debit and credit totals of an account is known as the _______ of an account.", "a": "Balance" },
+{ "id": 53, "q": "The excess of the debit total over the credit total is called the _______ balance.", "a": "Debit" },
+{ "id": 54, "q": "The excess of the credit total over the debit total is called the _______ balance.", "a": "Credit" },
+{ "id": 55, "q": "_______ is known as the principal book of account.", "a": "Ledger" },
+{ "id": 56, "q": "Separate or special books that are maintained to record a particular category of transactions are known as _______________.", "a": "Subsidiary book" },
+{ "id": 57, "q": "Subsidiary book is also known as __________.", "a": "Day book" },
+{ "id": 58, "q": "In the purchases book ___________ purchases of goods are only recorded.", "a": "Credit" },
+{ "id": 59, "q": "In case of purchases returns, we have to prepare a _______ note.", "a": "Debit" },
+{ "id": 60, "q": "The document received by the trader from the supplier stating that the goods are supplied as per the order is called _______ invoice.", "a": "Inward" },
+{ "id": 61, "q": "A rebate offered by the supplier on the catalogue price is known as a discount _______.", "a": "Trade" },
+{ "id": 62, "q": "The book that is used to record the return of goods to the suppliers is called ________.", "a": "Returns outward/ purchases returns book" },
+{ "id": 63, "q": "A debit note is prepared by the _______.", "a": "Customer" },
+{ "id": 64, "q": "A credit note is prepared by the _________.", "a": "Supplier" },
+{ "id": 65, "q": "In case of sales returns, we have to prepare a _____ note.", "a": "Credit" },
+{ "id": 66, "q": "A sales book is also called a __________.", "a": "Sales day book or sales journal" },
+{ "id": 67, "q": "In sales book _______ sales of goods are only recorded.", "a": "Credit" },
+{ "id": 68, "q": "Sales returns book is also called a _______ book.", "a": "Returns inward" },
+{ "id": 69, "q": "Purchase returns book is also called a ______ book.", "a": "Returns outward" },
+{ "id": 70, "q": "Cash purchases should be recorded in the ________ book.", "a": "Cash" },
+{ "id": 71, "q": "Cash sales should be recorded in the ________ book.", "a": "Cash" },
+{ "id": 72, "q": "The periodical total of the purchases book should be ________ to the purchases account in the ledger.", "a": "Debited" },
+{ "id": 73, "q": "The periodical total of the sales book should be _____ to the sales account in the ledger.", "a": "Credited" },
+{ "id": 74, "q": "Journal proper is also known as __________.", "a": "Journal residual or general journal" },
+{ "id": 75, "q": "__________ is the eighth subsidiary book.", "a": "Journal proper" },
+{ "id": 76, "q": "Asset purchased on credit should be recorded in _______.", "a": "Journal proper" },
+{ "id": 77, "q": "The asset sold on credit should be recorded in the ________.", "a": "Journal proper" },
+{ "id": 78, "q": "In an opening entry, the difference between the debit side and the credit side will be transferred to ________ account.", "a": "Capital" },
+{ "id": 79, "q": "All the transactions that cannot be recorded in the other seven subsidiary books are recorded in the ______.", "a": "Journal proper" },
+{ "id": 80, "q": "In the opening entry total assets – total liabilities = _______.", "a": "Capital" },
+{ "id": 81, "q": "__________ is the ‘book of prime entry’ or book of original entry.", "a": "Cash book" },
+{ "id": 82, "q": "_________ book plays a dual role as a journal as well as a ledger.", "a": "Cash" },
+{ "id": 83, "q": "In the cash book, cash receipts are recorded on the ______ side.", "a": "Debit" },
+{ "id": 84, "q": "In the cash book, cash payments are recorded on the ______ side.", "a": "Credit" },
+{ "id": 85, "q": "A single-column cash book is also known as a ________.", "a": "Simple cash book" },
+{ "id": 86, "q": "A double-column cash book is also known as a ________.", "a": "Two column" },
+{ "id": 87, "q": "___________ is an incentive given by the creditor to the debtor for prompt payment.", "a": "Discount" },
+{ "id": 88, "q": "The discount given by the seller to the buyer is known as the discount.", "a": "Trade" },
+{ "id": 89, "q": "_______ should not be recorded in the books of accounts.", "a": "Trade discount" },
+{ "id": 90, "q": "Discount given for prompt and early payment is called a discount.", "a": "Cash" },
+{ "id": 91, "q": "The discount allowed is shown on the ______ side of the cash book.", "a": "Debit" },
+{ "id": 92, "q": "The discount received is shown on the ______ side of the cash book.", "a": "Credit" },
+{ "id": 93, "q": "Opening bank balance (overdraft) should be recorded on the ________ of bank column in the triple column cash book.", "a": "Credit side" },
+{ "id": 94, "q": "An entry that appears on the both sides of the three column cash book is called ______.", "a": "Contra entry" },
+{ "id": 95, "q": "Sales through credit cards or debit cards are equivalent to ______.", "a": "Cash sales" },
+{ "id": 96, "q": "The cash book which is maintained to recoded all petty (small) expenses is called _______.", "a": "Petty cash book" },
+{ "id": 97, "q": "The petty cash book is maintained by a _________.", "a": "Petty cashier" },
+{ "id": 98, "q": "The system in which an estimated amount for petty expenses is determined and handed over in advance to the petty cashier is called the ________.", "a": "Imprest system" },
+{ "id": 99, "q": "A passbook is a copy of a _____ as it appears in the ledger of the bank.", "a": "Customer Account" },
+{ "id": 100, "q": "When money is withdrawn from the bank, the bank _____ the account of the customer.", "a": "Debits" },
+{ "id": 101, "q": "Normally, the cash book shows debit balance, while passbook shows a ______ balance.", "a": "Credit" },
+{ "id": 102, "q": "Favourable balance as per the cash book mean _______ balance in the bank column of the cash book.", "a": "Debit" },
+{ "id": 103, "q": "If the cash book balance is taken as a starting point the items which makes the cash book balance smaller than the passbook must be _______ for reconciliation.", "a": "Added" },
+{ "id": 104, "q": "If the passbook shows a favourable balance and if it taken as the starting point for a bank conciliation statement, then cheques issued but not presented for payment should be _____ to find out the cash balance.", "a": "Deducted" },
+{ "id": 105, "q": "When the cheques are not presented for payments, a favourable balance as per the cash book is ______ than that of the pass book.", "a": "Less" },
+{ "id": 106, "q": "If the overdraft as per the passbook is taken as a starting point, the cheques issued but not presented are to be ______ to the bank reconciliation statement.", "a": "Added" },
+{ "id": 107, "q": "When the passbook balance is taken as the starting point items which makes the passbook balance _____ than the balance in the cash book must be deducted foe reconciliation.", "a": "Higher" },
+{ "id": 108, "q": "The statement which is prepared to verify the arithmetical accuracy of ledger accounts is called __________.", "a": "Trial Balance" },
+{ "id": 109, "q": "All the assets should be recorded on the ___________ side of the trail balance.", "a": "Debit" },
+{ "id": 110, "q": "Capital should be recorded on the ________ side of the trail balance.", "a": "Credit" },
+{ "id": 111, "q": "All expenses and losses will appear on the ________ side of trail balance.", "a": "Debit" },
+{ "id": 112, "q": "All incomes and gains will appear on the _______ side of the trail balance.", "a": "Credit" },
+{ "id": 113, "q": "The statement prepared at the end of an accounting period are __________.", "a": "Final Accounts" },
+{ "id": 114, "q": "The expenditure incurred for acquiring fixed assets is called __________.", "a": "Capital expenditure" },
+{ "id": 115, "q": "The capital expenditure has to be shown on the _______ side of the balance sheet.", "a": "Assets" },
+{ "id": 116, "q": "The expenditure incurred in the normal course of business activities is called _________.", "a": "Revenue expenditures" },
+{ "id": 117, "q": "An income which arises during the normal course or regular business activities is called _______.", "a": "Revenue income" },
+{ "id": 118, "q": "_________ account is prepared to know the gross profit/gross loss.", "a": "Trading" },
+{ "id": 119, "q": "All direct expenses should be debited to the ______ account.", "a": "Trading" },
+{ "id": 120, "q": "Cash purchases + credit purchases – Purchases returns = _________.", "a": "Net purchases" },
+{ "id": 121, "q": "The opening stock should appear on the ______ side of the trading accounts.", "a": "Debit" },
+{ "id": 122, "q": "Cash sales + credit sales – sales returns = __________.", "a": "Net sales" },
+{ "id": 123, "q": "The unsold stock on the last day of the accounting period is called ______.", "a": "Closing stock" },
+{ "id": 124, "q": "The account which is prepared to know the net profit or net loss is called ______.", "a": "Profit and loss account" },
+{ "id": 125, "q": "All the indirect expenses will be debited to the _______ account.", "a": "Profit and loss" },
+{ "id": 126, "q": "The statement that is prepared to know the financial position of business is called _____.", "a": "Balance sheet" },
+{ "id": 127, "q": "The left hand side of the balance sheet is called the _______ side.", "a": "Liability" },
+{ "id": 128, "q": "The right hand side of the balance sheet is called the _______ side.", "a": "Assets" },
+{ "id": 129, "q": "The decline in the value of fixed asset is called _____.", "a": "Depreciation" },
+{ "id": 130, "q": "The irrecoverable debts are known as ______.", "a": "Bad debts" },
+{ "id": 131, "q": "Closing stock given in the trial balance should be recorded only on the ______ of balance sheet.", "a": "Assets side" },
+{ "id": 132, "q": "Outstanding salaries given in the trial balance should be recorded on the ______ of balance sheet.", "a": "Liabilities side" },
+{ "id": 133, "q": "The decline in the value of fixed asset is called ______.", "a": "Depreciation" },
+{ "id": 134, "q": "Bad debts given in the trial balance should be recorded on the ______ of the profit and loss account.", "a": "Debit side" },
+{ "id": 135, "q": "Bad debts given in the adjustments should be recorded on debt side of the profit and loss account and immediately deducted from the ______ on the Asset side.", "a": "Debtors" },
+{ "id": 136, "q": "Interest on capital given in the trial balance should be recorded on the debit side of the ________.", "a": "Profit and loss account" },
+{ "id": 137, "q": "Interest on drawings given in the trial balance should be recorded on the credit side of the ______.", "a": "Profit and loss account" }
+
+    ];
+
+    const Q_PER_TEST = 20; 
+    let currentTestSet = [];
+    let currentIndex = 0;
+    let score = 0;
+    let isMuted = false;
+    let voice = null;
+    let hasAnswered = false;
+
+    function setupVoice() {
+        const voices = window.speechSynthesis.getVoices();
+        voice = voices.find(v => v.name.includes('Female') || v.name.includes('Google US English')) || voices[0];
+    }
+    window.speechSynthesis.onvoiceschanged = setupVoice;
+
+    function speak(text) {
+        window.speechSynthesis.cancel();
+        if (isMuted) return;
+        const utterance = new SpeechSynthesisUtterance(text);
+        if (voice) utterance.voice = voice;
+        utterance.rate = 0.95;
+        window.speechSynthesis.speak(utterance);
+    }
+
+    // GENERATE 7 BUTTONS MANUALLY AS REQUESTED
+    function initMenu() {
+        const totalQs = allQuestionsBank.length;
+        const grid = document.getElementById('testGrid');
+        document.getElementById('totalInfo').innerText = `Total Questions available: ${totalQs}. Each test uses a specific range.`;
+        
+        grid.innerHTML = "";
+        for (let i = 1; i <= 7; i++) {
+            const btn = document.createElement('button');
+            btn.className = "test-card";
+            btn.innerText = `📒 Mock Test ${i}`;
+            btn.onclick = () => startMock(i);
+            grid.appendChild(btn);
+        }
+    }
+
+    function startMock(testNumber) {
+        // Logic to slice the bank based on test number
+        const startIdx = (testNumber - 1) * Q_PER_TEST;
+        currentTestSet = allQuestionsBank.slice(startIdx, startIdx + Q_PER_TEST);
+        
+        if(currentTestSet.length === 0) {
+            alert("No questions found in the bank for Test " + testNumber);
+            return;
+        }
+
+        document.getElementById('homeScreen').classList.add('hidden');
+        document.getElementById('quizScreen').classList.remove('hidden');
+        
+        currentIndex = 0;
+        score = 0;
+        displayQuestion();
+    }
+
+    function displayQuestion() {
+        hasAnswered = false;
+        const currentQ = currentTestSet[currentIndex];
+        document.getElementById('questionDisplay').innerText = currentQ.q;
+        document.getElementById('progressLabel').innerText = `Question ${currentIndex + 1}/${currentTestSet.length}`;
+        document.getElementById('feedbackMsg').innerText = "";
+        const input = document.getElementById('userInput');
+        input.value = "";
+        input.focus();
+        repeatQ();
+    }
+
+    function repeatQ() {
+        const text = currentTestSet[currentIndex].q.replace(/_+/g, " blank ");
+        speak("Question " + (currentIndex + 1) + ". " + text);
+    }
+
+    function evaluateInput() {
+        if (hasAnswered) return;
+        const user = document.getElementById('userInput').value.trim().toLowerCase();
+        const correct = currentTestSet[currentIndex].a.toLowerCase();
+        if (user === "") return speak("Please type an answer.");
+
+        hasAnswered = true;
+        if (user === correct) {
+            score++;
+            document.getElementById('feedbackMsg').innerText = "✅ Correct!";
+            document.getElementById('feedbackMsg').style.color = "var(--success)";
+            speak("Correct. The answer is " + currentTestSet[currentIndex].a);
+        } else {
+            document.getElementById('feedbackMsg').innerText = "❌ Incorrect. Correct: " + currentTestSet[currentIndex].a;
+            document.getElementById('feedbackMsg').style.color = "var(--error)";
+            speak("Wrong. The correct answer is " + currentTestSet[currentIndex].a + ". Press Shift to hear spelling.");
+        }
+    }
+
+    function spellCorrectAnswer() {
+        const word = currentTestSet[currentIndex].a;
+        speak("The spelling is " + word.split("").join(", "));
+    }
+
+    function toggleAudio() {
+        isMuted = !isMuted;
+        document.getElementById('soundLabel').innerText = isMuted ? "🔇 Sound: OFF" : "🔊 Sound: ON";
+        if (isMuted) window.speechSynthesis.cancel();
+    }
+
+    function handleNext() {
+        if (currentIndex < currentTestSet.length - 1) {
+            currentIndex++;
+            displayQuestion();
+        } else {
+            speak(`Test complete. Your score is ${score} out of ${currentTestSet.length}.`);
+            document.getElementById('quizScreen').innerHTML = `
+                <div style="padding: 50px 0;">
+                    <h1>Test Completed!</h1>
+                    <p style="font-size: 3em; color: var(--success);">${score} / ${currentTestSet.length}</p>
+                    <button class="btn btn-confirm" onclick="location.reload()">Back to Menu</button>
+                </div>`;
+        }
+    }
+
+    function handlePrev() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            displayQuestion();
+        }
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (document.getElementById('quizScreen').classList.contains('hidden')) return;
+        if (e.key === 'Enter') {
+            if (!hasAnswered) evaluateInput();
+            else handleNext();
+        }
+        if (e.key === 'ArrowRight') handleNext();
+        if (e.key === 'ArrowLeft') handlePrev();
+        if (e.key === 'Shift') spellCorrectAnswer();
+        if (e.key.toLowerCase() === 'r') repeatQ();
+        if (e.key.toLowerCase() === 'm') toggleAudio();
+    });
+
+    window.onload = () => { setupVoice(); initMenu(); };
+</script>
+</body>
+</html>

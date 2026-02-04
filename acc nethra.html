@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accounting Master: Interactive Voice Edition</title>
+    <style>
+        :root { --primary: #2c3e50; --success: #27ae60; --error: #e74c3c; --bg: #f4f7f6; --accent: #8e44ad; --stop: #c0392b; --nav: #3498db; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        .container { max-width: 800px; width: 100%; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); min-height: 480px; position: relative; }
+        
+        .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 30px; }
+        .menu-card { background: var(--primary); color: white; padding: 40px; border-radius: 10px; cursor: pointer; text-align: center; font-size: 1.5em; font-weight: bold; transition: 0.2s; }
+        .menu-card:hover { transform: scale(1.02); background: var(--accent); }
+
+        .nav-info { display: flex; justify-content: space-between; margin-bottom: 20px; color: #7f8c8d; font-weight: bold; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .question-text { font-size: 1.4em; color: var(--primary); margin-bottom: 25px; text-align: center; line-height: 1.4; min-height: 3em; }
+        
+        .option { padding: 15px; border: 2px solid #eee; border-radius: 10px; font-size: 1.2em; cursor: pointer; margin-bottom: 10px; display: flex; align-items: center; transition: 0.2s; }
+        .option.selected { border-color: var(--accent); background: #f4f0ff; }
+        
+        .correct { background: #d4edda !important; border-color: var(--success) !important; color: #155724; }
+        .wrong { background: #f8d7da !important; border-color: var(--error) !important; color: #721c24; }
+        
+        .controls-row { display: flex; justify-content: center; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+        .btn { color: white; border: none; padding: 12px 20px; border-radius: 30px; cursor: pointer; font-weight: bold; min-width: 100px; }
+        .btn-nav { background: var(--nav); }
+        .btn-stop { background: var(--stop); }
+        .btn-home { background: #7f8c8d; }
+        
+        .status-msg { text-align: center; color: var(--accent); font-weight: bold; margin: 15px 0; min-height: 1.2em; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="mainContainer">
+    <div id="homeScreen">
+        <h1 style="text-align: center; color: var(--primary);">Accounting Mock Tests</h1>
+        <p style="text-align: center; color: #666;">Select a test to begin. Audio will stop immediately if you return here.</p>
+        <div class="menu-grid">
+            <div class="menu-card" onclick="startTest(0)">Mock Test 1</div>
+            <div class="menu-card" onclick="startTest(1)">Mock Test 2</div>
+            <div class="menu-card" onclick="startTest(2)">Mock Test 3</div>
+            <div class="menu-card" onclick="startTest(3)">Mock Test 4</div>
+            <div class="menu-card" onclick="startTest(4)">Mock Test 5</div>
+            <div class="menu-card" onclick="startTest(5)">Mock Test 6</div>
+        </div>
+    </div>
+
+    <div id="quizScreen" class="hidden">
+        <div class="nav-info">
+            <span id="testTitle">Mock Test</span>
+            <span id="progressLabel">Question 0/20</span>
+        </div>
+        <p class="question-text" id="qText"></p>
+        <div id="optionsBox"></div>
+        <div class="status-msg" id="statusMsg"></div>
+        <div class="controls-row">
+            <button class="btn btn-nav" onclick="prevQuestion()">← Prev</button>
+            <button class="btn" style="background: var(--success)" onclick="confirmAnswer()">Confirm (Enter)</button>
+            <button class="btn btn-nav" onclick="nextQuestion()">Next →</button>
+        </div>
+        <div class="controls-row">
+            <button class="btn" style="background: var(--accent)" onclick="repeatQuestion()">🔊 Repeat (R)</button>
+            <button class="btn btn-stop" onclick="stopSound()">🛑 Stop (S)</button>
+            <button class="btn btn-home" onclick="goHome()">🏠 Home</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const questions = [
+  {
+    "Question No": "1",
+    "Question": "Closing stock given in trial balance is shown only on the ______ of balance sheet.",
+    "Option A": "Liabilities side",
+    "Option B": "Assets side",
+    "Option C": "Debit side",
+    "Option D": "Credit side",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "2",
+    "Question": "Outstanding salaries given in trial balance are shown on the ______ of balance sheet.",
+    "Option A": "Assets side",
+    "Option B": "Debit side",
+    "Option C": "Liabilities side",
+    "Option D": "Credit side",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "3",
+    "Question": "Decline in the value of a fixed asset is called:",
+    "Option A": "Amortization",
+    "Option B": "Depreciation",
+    "Option C": "Depletion",
+    "Option D": "Obsolescence",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "4",
+    "Question": "Bad debts given in trial balance are shown on the ______ of profit and loss account.",
+    "Option A": "Credit side",
+    "Option B": "Assets side",
+    "Option C": "Debit side",
+    "Option D": "Liabilities side",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "5",
+    "Question": "Bad debts in adjustments are deducted from ______ on asset side.",
+    "Option A": "Capital",
+    "Option B": "Cash",
+    "Option C": "Debtors",
+    "Option D": "Creditors",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "6",
+    "Question": "Interest on capital is debited to the ______.",
+    "Option A": "Trading account",
+    "Option B": "Balance sheet",
+    "Option C": "Profit and loss account",
+    "Option D": "Capital account",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "7",
+    "Question": "Interest on drawings is credited to the ______.",
+    "Option A": "Trading account",
+    "Option B": "Profit and loss account",
+    "Option C": "Balance sheet",
+    "Option D": "Capital account",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "8",
+    "Question": "Statements prepared at the end of accounting period are called:",
+    "Option A": "Trial balance",
+    "Option B": "Final accounts",
+    "Option C": "Ledger accounts",
+    "Option D": "Balance sheet",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "9",
+    "Question": "Expenditure incurred to acquire fixed assets is called:",
+    "Option A": "Revenue expenditure",
+    "Option B": "Deferred expenditure",
+    "Option C": "Capital expenditure",
+    "Option D": "Operating expenditure",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "10",
+    "Question": "Capital expenditure is shown on the ______ side of balance sheet.",
+    "Option A": "Liabilities",
+    "Option B": "Expenses",
+    "Option C": "Assets",
+    "Option D": "Income",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "11",
+    "Question": "Expenditure incurred in normal business operations is called:",
+    "Option A": "Capital expenditure",
+    "Option B": "Revenue expenditure",
+    "Option C": "Deferred expenditure",
+    "Option D": "Operating loss",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "12",
+    "Question": "Income earned from regular business activities is called:",
+    "Option A": "Capital income",
+    "Option B": "Revenue income",
+    "Option C": "Accidental income",
+    "Option D": "Non-operating income",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "13",
+    "Question": "Trading account is prepared to ascertain:",
+    "Option A": "Net profit",
+    "Option B": "Gross profit",
+    "Option C": "Operating profit",
+    "Option D": "Cash profit",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "14",
+    "Question": "All direct expenses are debited to:",
+    "Option A": "Profit & Loss account",
+    "Option B": "Balance sheet",
+    "Option C": "Trading account",
+    "Option D": "Capital account",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "15",
+    "Question": "Cash purchases + Credit purchases – Purchase returns equals:",
+    "Option A": "Gross purchases",
+    "Option B": "Net purchases",
+    "Option C": "Total purchases",
+    "Option D": "Cost of goods sold",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "16",
+    "Question": "Opening stock appears on the ______ side of trading account.",
+    "Option A": "Credit",
+    "Option B": "Debit",
+    "Option C": "Assets",
+    "Option D": "Liabilities",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "17",
+    "Question": "Cash sales + Credit sales – Sales returns equals:",
+    "Option A": "Gross sales",
+    "Option B": "Net sales",
+    "Option C": "Total sales",
+    "Option D": "Revenue",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "18",
+    "Question": "Unsold stock at the end of accounting period is called:",
+    "Option A": "Opening stock",
+    "Option B": "Closing stock",
+    "Option C": "Net stock",
+    "Option D": "Final stock",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "19",
+    "Question": "Account prepared to know net profit or net loss is:",
+    "Option A": "Trading account",
+    "Option B": "Profit & Loss account",
+    "Option C": "Balance sheet",
+    "Option D": "Capital account",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "20",
+    "Question": "All indirect expenses are debited to:",
+    "Option A": "Trading account",
+    "Option B": "Balance sheet",
+    "Option C": "Profit & Loss account",
+    "Option D": "Capital account",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "21",
+    "Question": "Statement showing financial position of a business is called:",
+    "Option A": "Trading account",
+    "Option B": "Profit & Loss account",
+    "Option C": "Trial balance",
+    "Option D": "Balance sheet",
+    "Correct Option": "D"
+  },
+  {
+    "Question No": "22",
+    "Question": "Left-hand side of balance sheet is called:",
+    "Option A": "Assets",
+    "Option B": "Income",
+    "Option C": "Liabilities",
+    "Option D": "Expenses",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "23",
+    "Question": "Right-hand side of balance sheet is called:",
+    "Option A": "Liabilities",
+    "Option B": "Expenses",
+    "Option C": "Capital",
+    "Option D": "Assets",
+    "Correct Option": "D"
+  },
+  {
+    "Question No": "24",
+    "Question": "Decline in value of fixed asset is known as:",
+    "Option A": "Amortization",
+    "Option B": "Depletion",
+    "Option C": "Depreciation",
+    "Option D": "Obsolescence",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "25",
+    "Question": "Irrecoverable debts are called:",
+    "Option A": "Doubtful debts",
+    "Option B": "Bad debts",
+    "Option C": "Good debts",
+    "Option D": "Provision",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "26",
+    "Question": "Passbook is a copy of:",
+    "Option A": "Ledger account",
+    "Option B": "Customer account",
+    "Option C": "Cash book",
+    "Option D": "Bank statement",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "27",
+    "Question": "When money is withdrawn, bank ______ the customer's account.",
+    "Option A": "Credits",
+    "Option B": "Debits",
+    "Option C": "Balances",
+    "Option D": "Closes",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "28",
+    "Question": "Normally, passbook shows a ______ balance.",
+    "Option A": "Debit",
+    "Option B": "Credit",
+    "Option C": "Nil",
+    "Option D": "Overdraft",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "29",
+    "Question": "Favourable balance as per cash book means:",
+    "Option A": "Credit balance",
+    "Option B": "Debit balance",
+    "Option C": "Overdraft",
+    "Option D": "Nil balance",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "30",
+    "Question": "Items making cash book balance smaller should be ______ when reconciling.",
+    "Option A": "Deducted",
+    "Option B": "Ignored",
+    "Option C": "Added",
+    "Option D": "Balanced",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "31",
+    "Question": "Cheques issued but not presented are ______ when passbook is starting point.",
+    "Option A": "Added",
+    "Option B": "Deducted",
+    "Option C": "Ignored",
+    "Option D": "Adjusted",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "32",
+    "Question": "If cheques are not presented, cash book balance is ______ than passbook.",
+    "Option A": "Higher",
+    "Option B": "Equal",
+    "Option C": "Less",
+    "Option D": "Nil",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "33",
+    "Question": "If overdraft as per passbook is starting point, unpresented cheques are:",
+    "Option A": "Deducted",
+    "Option B": "Ignored",
+    "Option C": "Added",
+    "Option D": "Balanced",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "34",
+    "Question": "If passbook balance is higher than cash book, the difference should be:",
+    "Option A": "Added",
+    "Option B": "Ignored",
+    "Option C": "Deducted",
+    "Option D": "Balanced",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "35",
+    "Question": "Which book is called the book of prime entry?",
+    "Option A": "Journal",
+    "Option B": "Ledger",
+    "Option C": "Cash book",
+    "Option D": "Trial balance",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "36",
+    "Question": "Cash book plays a dual role as:",
+    "Option A": "Journal and trial balance",
+    "Option B": "Ledger and trial balance",
+    "Option C": "Journal and ledger",
+    "Option D": "Ledger and balance sheet",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "37",
+    "Question": "Cash receipts are recorded on the ______ side of cash book.",
+    "Option A": "Credit",
+    "Option B": "Debit",
+    "Option C": "Assets",
+    "Option D": "Liabilities",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "38",
+    "Question": "Cash payments are recorded on the ______ side of cash book.",
+    "Option A": "Debit",
+    "Option B": "Credit",
+    "Option C": "Assets",
+    "Option D": "Income",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "39",
+    "Question": "Single column cash book is also known as:",
+    "Option A": "Petty cash book",
+    "Option B": "Simple cash book",
+    "Option C": "Double cash book",
+    "Option D": "Contra book",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "40",
+    "Question": "Discount allowed is recorded on the ______ side of cash book.",
+    "Option A": "Credit",
+    "Option B": "Debit",
+    "Option C": "Assets",
+    "Option D": "Expenses",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "41",
+    "Question": "Discount received is recorded on the ______ side of cash book.",
+    "Option A": "Debit",
+    "Option B": "Credit",
+    "Option C": "Assets",
+    "Option D": "Expenses",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "42",
+    "Question": "An entry appearing on both sides of cash book is called:",
+    "Option A": "Posting entry",
+    "Option B": "Contra entry",
+    "Option C": "Balancing entry",
+    "Option D": "Adjusting entry",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "43",
+    "Question": "Sales through debit or credit cards are treated as:",
+    "Option A": "Credit sales",
+    "Option B": "Cash sales",
+    "Option C": "Bank sales",
+    "Option D": "Online sales",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "44",
+    "Question": "Petty cash book is maintained by:",
+    "Option A": "Cashier",
+    "Option B": "Head cashier",
+    "Option C": "Petty cashier",
+    "Option D": "Accountant",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "45",
+    "Question": "Trial balance is prepared to check the ______ accuracy of ledger accounts.",
+    "Option A": "Legal",
+    "Option B": "Arithmetical",
+    "Option C": "Theoretical",
+    "Option D": "Practical",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "46",
+    "Question": "All assets are shown on the ______ side of trial balance.",
+    "Option A": "Credit",
+    "Option B": "Debit",
+    "Option C": "Capital",
+    "Option D": "Income",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "47",
+    "Question": "Capital is shown on the ______ side of trial balance.",
+    "Option A": "Debit",
+    "Option B": "Credit",
+    "Option C": "Asset",
+    "Option D": "Expense",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "48",
+    "Question": "All expenses and losses appear on the ______ side of trial balance.",
+    "Option A": "Credit",
+    "Option B": "Debit",
+    "Option C": "Capital",
+    "Option D": "Liability",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "49",
+    "Question": "All incomes and gains appear on the ______ side of trial balance.",
+    "Option A": "Debit",
+    "Option B": "Credit",
+    "Option C": "Expense",
+    "Option D": "Asset",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "50",
+    "Question": "Special books maintained for particular transactions are called:",
+    "Option A": "Ledger",
+    "Option B": "Journal",
+    "Option C": "Subsidiary books",
+    "Option D": "Cash book",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "51",
+    "Question": "Subsidiary book is also known as:",
+    "Option A": "Ledger",
+    "Option B": "Day book",
+    "Option C": "Journal proper",
+    "Option D": "Cash book",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "52",
+    "Question": "Purchases book records only ______ purchases.",
+    "Option A": "Cash",
+    "Option B": "Credit",
+    "Option C": "Both",
+    "Option D": "Return",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "53",
+    "Question": "For purchases returns, which note is prepared?",
+    "Option A": "Credit note",
+    "Option B": "Debit note",
+    "Option C": "Invoice",
+    "Option D": "Receipt",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "54",
+    "Question": "Invoice received from supplier is called:",
+    "Option A": "Outward invoice",
+    "Option B": "Inward invoice",
+    "Option C": "Sales invoice",
+    "Option D": "Debit invoice",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "55",
+    "Question": "Discount allowed on catalogue price is called:",
+    "Option A": "Cash discount",
+    "Option B": "Trade discount",
+    "Option C": "Seasonal discount",
+    "Option D": "Quantity discount",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "56",
+    "Question": "Book used to record return of goods to suppliers is:",
+    "Option A": "Sales book",
+    "Option B": "Returns inward book",
+    "Option C": "Returns outward book",
+    "Option D": "Cash book",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "57",
+    "Question": "Debit note is prepared by the:",
+    "Option A": "Supplier",
+    "Option B": "Customer",
+    "Option C": "Bank",
+    "Option D": "Seller",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "58",
+    "Question": "Credit note is prepared by the:",
+    "Option A": "Customer",
+    "Option B": "Supplier",
+    "Option C": "Bank",
+    "Option D": "Buyer",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "59",
+    "Question": "Sales book records only ______ sales.",
+    "Option A": "Cash",
+    "Option B": "Credit",
+    "Option C": "Both",
+    "Option D": "Return",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "60",
+    "Question": "Journal proper is also known as:",
+    "Option A": "Special journal",
+    "Option B": "Cash journal",
+    "Option C": "General journal",
+    "Option D": "Sales journal",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "61",
+    "Question": "Which is known as the eighth subsidiary book?",
+    "Option A": "Cash book",
+    "Option B": "Journal",
+    "Option C": "Journal proper",
+    "Option D": "Ledger",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "62",
+    "Question": "Asset purchased on credit is recorded in:",
+    "Option A": "Purchases book",
+    "Option B": "Journal proper",
+    "Option C": "Cash book",
+    "Option D": "Ledger",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "63",
+    "Question": "Asset sold on credit is recorded in:",
+    "Option A": "Sales book",
+    "Option B": "Cash book",
+    "Option C": "Journal proper",
+    "Option D": "Ledger",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "64",
+    "Question": "Difference in opening entry is transferred to:",
+    "Option A": "Profit and loss account",
+    "Option B": "Capital account",
+    "Option C": "Suspense account",
+    "Option D": "Reserve account",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "65",
+    "Question": "Transactions not recorded in other subsidiary books are recorded in:",
+    "Option A": "Ledger",
+    "Option B": "Cash book",
+    "Option C": "Journal proper",
+    "Option D": "Trial balance",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "66",
+    "Question": "In opening entry, total assets minus total liabilities equals:",
+    "Option A": "Profit",
+    "Option B": "Capital",
+    "Option C": "Income",
+    "Option D": "Loss",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "67",
+    "Question": "The double entry system was invented by:",
+    "Option A": "Adam Smith",
+    "Option B": "Luca Pacioli",
+    "Option C": "Henry Ford",
+    "Option D": "Marshall",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "68",
+    "Question": "The double entry system was invented in the year:",
+    "Option A": "1400 AD",
+    "Option B": "1450 AD",
+    "Option C": "1494 AD",
+    "Option D": "1500 AD",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "69",
+    "Question": "Debit and credit aspects form the basis of:",
+    "Option A": "Single entry system",
+    "Option B": "Cash system",
+    "Option C": "Double entry system",
+    "Option D": "Accrual system",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "70",
+    "Question": "Capital + Liabilities = ?",
+    "Option A": "Income",
+    "Option B": "Expenses",
+    "Option C": "Assets",
+    "Option D": "Losses",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "71",
+    "Question": "Assets – Liabilities = ?",
+    "Option A": "Capital",
+    "Option B": "Income",
+    "Option C": "Expenses",
+    "Option D": "Profit",
+    "Correct Option": "A"
+  },
+  {
+    "Question No": "72",
+    "Question": "Accounting equation is based on:",
+    "Option A": "Business entity concept",
+    "Option B": "Going concern concept",
+    "Option C": "Dual aspect concept",
+    "Option D": "Money measurement concept",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "73",
+    "Question": "Accounts related to persons are called:",
+    "Option A": "Real accounts",
+    "Option B": "Nominal accounts",
+    "Option C": "Personal accounts",
+    "Option D": "Impersonal accounts",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "74",
+    "Question": "Accounts related to assets and properties are called:",
+    "Option A": "Personal accounts",
+    "Option B": "Nominal accounts",
+    "Option C": "Real accounts",
+    "Option D": "Impersonal accounts",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "75",
+    "Question": "Accounts related to income and expenses are called:",
+    "Option A": "Personal accounts",
+    "Option B": "Real accounts",
+    "Option C": "Nominal accounts",
+    "Option D": "Capital accounts",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "76",
+    "Question": "Book keeping is the branch of knowledge that reveals how to keep a record of business transactions.",
+    "Option A": "Accounting",
+    "Option B": "Book keeping",
+    "Option C": "Auditing",
+    "Option D": "Economics",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "77",
+    "Question": "The basic objective of book keeping is to have a ______ record of all business transactions.",
+    "Option A": "Temporary",
+    "Option B": "Permanent",
+    "Option C": "Casual",
+    "Option D": "Flexible",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "78",
+    "Question": "AICPA stands for:",
+    "Option A": "American Institute of Cost Accountants",
+    "Option B": "American Institute of Certified Public Accountants",
+    "Option C": "Association of Indian Chartered Accountants",
+    "Option D": "American International Public Association",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "79",
+    "Question": "AAA stands for:",
+    "Option A": "American Accounting Association",
+    "Option B": "Asian Accounting Association",
+    "Option C": "Association of Auditors",
+    "Option D": "American Auditing Authority",
+    "Correct Option": "A"
+  },
+  {
+    "Question No": "80",
+    "Question": "The complete sequence of accounting process is called:",
+    "Option A": "Book keeping",
+    "Option B": "Accounting cycle",
+    "Option C": "Journal",
+    "Option D": "Ledger",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "81",
+    "Question": "Accounting considers only ______ transactions.",
+    "Option A": "Business",
+    "Option B": "Personal",
+    "Option C": "Monetary",
+    "Option D": "Non-monetary",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "82",
+    "Question": "A person who owns a business is called:",
+    "Option A": "Manager",
+    "Option B": "Partner",
+    "Option C": "Proprietor",
+    "Option D": "Agent",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "83",
+    "Question": "The amount invested by the owner in the business is called:",
+    "Option A": "Profit",
+    "Option B": "Drawings",
+    "Option C": "Capital",
+    "Option D": "Revenue",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "84",
+    "Question": "Assets can be classified into:",
+    "Option A": "Current and Fixed",
+    "Option B": "Tangible and Intangible",
+    "Option C": "Real and Nominal",
+    "Option D": "Personal and Impersonal",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "85",
+    "Question": "The difference between revenue and expense is called:",
+    "Option A": "Capital",
+    "Option B": "Income",
+    "Option C": "Loss",
+    "Option D": "Drawings",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "86",
+    "Question": "Ledger is also known as:",
+    "Option A": "Book of original entry",
+    "Option B": "Book of secondary entry",
+    "Option C": "Subsidiary book",
+    "Option D": "Cash book",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "87",
+    "Question": "J.F stands for:",
+    "Option A": "Journal Form",
+    "Option B": "Journal Folio",
+    "Option C": "Journal File",
+    "Option D": "Journal",
+    "Correct Option": "D"
+  },
+  {
+    "Question No": "88",
+    "Question": "Which book contains all the accounts?",
+    "Option A": "Journal",
+    "Option B": "Cash book",
+    "Option C": "Ledger",
+    "Option D": "Trial balance",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "89",
+    "Question": "Left-hand side of an account is called:",
+    "Option A": "Credit side",
+    "Option B": "Debit side",
+    "Option C": "Asset side",
+    "Option D": "Liability side",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "90",
+    "Question": "Right-hand side of an account is called:",
+    "Option A": "Debit side",
+    "Option B": "Credit side",
+    "Option C": "Income side",
+    "Option D": "Expense side",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "91",
+    "Question": "Transferring journal entries to ledger is known as:",
+    "Option A": "Balancing",
+    "Option B": "Casting",
+    "Option C": "Posting",
+    "Option D": "Recording",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "92",
+    "Question": "Difference between debit and credit totals is called:",
+    "Option A": "Posting",
+    "Option B": "Balance",
+    "Option C": "Casting",
+    "Option D": "Journalising",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "93",
+    "Question": "Excess of debit total over credit total is called:",
+    "Option A": "Credit balance",
+    "Option B": "Debit balance",
+    "Option C": "Capital balance",
+    "Option D": "Nominal balance",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "94",
+    "Question": "Excess of credit total over debit total is called:",
+    "Option A": "Debit balance",
+    "Option B": "Credit balance",
+    "Option C": "Asset balance",
+    "Option D": "Expense balance",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "95",
+    "Question": "Ledger is known as the ______ book of account.",
+    "Option A": "Primary",
+    "Option B": "Final",
+    "Option C": "Principal",
+    "Option D": "Original",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "96",
+    "Question": "Which book is known as the book of original entry?",
+    "Option A": "Ledger",
+    "Option B": "Cash book",
+    "Option C": "Journal",
+    "Option D": "Trial balance",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "97",
+    "Question": "Recording transactions in the journal is called:",
+    "Option A": "Posting",
+    "Option B": "Journalising",
+    "Option C": "Balancing",
+    "Option D": "Classifying",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "98",
+    "Question": "L.F stands for:",
+    "Option A": "Ledger Form",
+    "Option B": "Ledger Folio",
+    "Option C": "List Folio",
+    "Option D": "Ledger File",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "99",
+    "Question": "Goodwill is classified as which type of account?",
+    "Option A": "Personal",
+    "Option B": "Nominal",
+    "Option C": "Real",
+    "Option D": "Impersonal",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "100",
+    "Question": "Accounts other than personal accounts are known as:",
+    "Option A": "Real accounts",
+    "Option B": "Nominal accounts",
+    "Option C": "Impersonal accounts",
+    "Option D": "Capital accounts",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "101",
+    "Question": "The basic assumptions on which accounting is based are called:",
+    "Option A": "Accounting Standards",
+    "Option B": "Accounting Concepts",
+    "Option C": "Accounting Policies",
+    "Option D": "Accounting Systems",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "102",
+    "Question": "Rules and practices guiding preparation of accounts are called:",
+    "Option A": "Accounting Conventions",
+    "Option B": "Accounting Concepts",
+    "Option C": "Accounting Principles",
+    "Option D": "Accounting Standards",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "103",
+    "Question": "The dual aspect principle is the basis of:",
+    "Option A": "Single entry system",
+    "Option B": "Double entry system",
+    "Option C": "Cash system",
+    "Option D": "Accrual system",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "104",
+    "Question": "Separating owner's personal affairs from business is known as:",
+    "Option A": "Going concern concept",
+    "Option B": "Business entity concept",
+    "Option C": "Money measurement concept",
+    "Option D": "Matching concept",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "105",
+    "Question": "Customs guiding preparation of accounts are called:",
+    "Option A": "Principles",
+    "Option B": "Concepts",
+    "Option C": "Conventions",
+    "Option D": "Standards",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "106",
+    "Question": "International Accounting Standards Committee was established in:",
+    "Option A": "1965",
+    "Option B": "1973",
+    "Option C": "1977",
+    "Option D": "1980",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "107",
+    "Question": "Accounting Standards Board was set up in the year:",
+    "Option A": "1973",
+    "Option B": "1975",
+    "Option C": "1977",
+    "Option D": "1981",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "108",
+    "Question": "Rules that standardize accounting practices are called:",
+    "Option A": "Accounting Concepts",
+    "Option B": "Accounting Conventions",
+    "Option C": "Accounting Standards",
+    "Option D": "Accounting Policies",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "109",
+    "Question": "Number of Indian Accounting Standards accepted worldwide:",
+    "Option A": "25",
+    "Option B": "30",
+    "Option C": "35",
+    "Option D": "40",
+    "Correct Option": "C"
+  },
+  {
+    "Question No": "110",
+    "Question": "IASC stands for:",
+    "Option A": "International Accounting Standards Committee",
+    "Option B": "Indian Accounting Standards Committee",
+    "Option C": "International Auditing Standards Committee",
+    "Option D": "Institute of Accounting Standards Council",
+    "Correct Option": "A"
+  },
+  {
+    "Question No": "111",
+    "Question": "Preparing financial statements to know performance is called:",
+    "Option A": "Matching concept",
+    "Option B": "Accounting period concept",
+    "Option C": "Business entity concept",
+    "Option D": "Going concern concept",
+    "Correct Option": "B"
+  },
+  {
+    "Question No": "112",
+    "Question": "Period for which financial statements are prepared is called:",
+    "Option A": "Financial year",
+    "Option B": "Accounting cycle",
+    "Option C": "Accounting period",
+    "Option D": "Calendar year",
+    "Correct Option": "C"
+  }
+];
+    let testSet = [], currentIndex = 0, score = 0, selectedChoice = null, answeredIndices = {}, femaleVoice = null;
+
+    // 1. IMPROVED VOICE FINDER
+    function getFemaleVoice() {
+        const voices = window.speechSynthesis.getVoices();
+        // Look for Female names across different OS
+        femaleVoice = voices.find(v => 
+            v.name.includes('Female') || v.name.includes('Samantha') || 
+            v.name.includes('Zira') || v.name.includes('Google US English') ||
+            v.name.includes('Microsoft Maria') || v.name.includes('Microsoft Hazel')
+        ) || voices[0];
+    }
+    window.speechSynthesis.onvoiceschanged = getFemaleVoice;
+
+    // 2. STOP SOUND BUG FIX
+    function stopSound() { 
+        window.speechSynthesis.pause(); // Pause first to break any current word
+        window.speechSynthesis.cancel(); 
+    }
+
+    function speak(text, callback) {
+        stopSound();
+        const u = new SpeechSynthesisUtterance(text);
+        if (femaleVoice) u.voice = femaleVoice;
+        u.pitch = 1.2; 
+        u.rate = 0.95;
+        if (callback) u.onend = callback;
+        window.speechSynthesis.speak(u);
+    }
+
+    function startTest(index) {
+        document.getElementById('homeScreen').classList.add('hidden');
+        document.getElementById('quizScreen').classList.remove('hidden');
+        document.getElementById('testTitle').innerText = `Mock Test ${index + 1}`;
+        testSet = questions.slice(index * 20, (index * 20) + 20);
+        currentIndex = 0; score = 0; answeredIndices = {};
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        selectedChoice = null;
+        const q = testSet[currentIndex];
+        document.getElementById('qText').innerText = q.Question;
+        document.getElementById('progressLabel').innerText = `Question ${currentIndex + 1}/${testSet.length}`;
+        document.getElementById('statusMsg').innerText = "Select 1-4, then Enter.";
+        
+        document.getElementById('optionsBox').innerHTML = ['A','B','C','D'].map((l, i) => `
+            <div class="option" id="opt-${l}" onclick="selectOption('${l}')">
+                <span style="font-weight:bold; margin-right:15px;">${i+1}.</span> ${q['Option ' + l]}
+            </div>
+        `).join('');
+        
+        if (answeredIndices[currentIndex] !== undefined) {
+            const correct = q["Correct Option"];
+            document.getElementById(`opt-${correct}`).classList.add('correct');
+            speak(`Question ${currentIndex + 1} has already been answered.`);
+        } else {
+            repeatQuestion();
+        }
+    }
+
+    function repeatQuestion() {
+        const q = testSet[currentIndex];
+        const audioQ = q.Question.replace(/_+/g, " blank ");
+        speak(`Question number ${currentIndex + 1}. ${audioQ}. 1: ${q['Option A']}. 2: ${q['Option B']}. 3: ${q['Option C']}. 4: ${q['Option D']}.`);
+    }
+
+    function selectOption(letter) {
+        if (answeredIndices[currentIndex] !== undefined) return;
+        selectedChoice = letter;
+        document.querySelectorAll('.option').forEach(el => el.classList.remove('selected'));
+        document.getElementById(`opt-${letter}`).classList.add('selected');
+        speak(`You selected: ${testSet[currentIndex]['Option ' + letter]}. Press Enter to confirm.`);
+    }
+
+    function confirmAnswer() {
+        if (answeredIndices[currentIndex] !== undefined || !selectedChoice) return;
+        const q = testSet[currentIndex];
+        const correct = q["Correct Option"];
+        const isCorrect = selectedChoice === correct;
+        answeredIndices[currentIndex] = isCorrect;
+        if (isCorrect) score++;
+
+        document.getElementById(`opt-${selectedChoice}`).classList.add(isCorrect ? 'correct' : 'wrong');
+        if (!isCorrect) document.getElementById(`opt-${correct}`).classList.add('correct');
+
+        speak(isCorrect ? `Correct! ${q['Option ' + correct]}` : `Incorrect. The correct answer is ${q['Option ' + correct]}`);
+    }
+
+    function nextQuestion() { if (currentIndex < testSet.length - 1) { currentIndex++; loadQuestion(); } else { showResult(); } }
+    function prevQuestion() { if (currentIndex > 0) { currentIndex--; loadQuestion(); } }
+
+    function showResult() {
+        document.getElementById('quizScreen').innerHTML = `
+            <div style="text-align:center; padding: 40px;">
+                <h2>Test Complete!</h2>
+                <p style="font-size: 2.5em; color: var(--success);">${score} / ${testSet.length}</p>
+                <button class="menu-card" style="width: 250px; margin: 20px auto;" onclick="goHome()">Finish</button>
+            </div>`;
+        speak(`Test complete. You got ${score} out of ${testSet.length}.`);
+    }
+
+    // 3. UPDATED HOME FUNCTION TO KILL AUDIO
+    function goHome() { 
+        stopSound(); // Kills audio before moving
+        document.getElementById('quizScreen').classList.add('hidden');
+        document.getElementById('homeScreen').classList.remove('hidden');
+        // Resetting the quiz screen content in case it was at the "Results" page
+        location.reload(); 
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === '1') selectOption('A');
+        if (e.key === '2') selectOption('B');
+        if (e.key === '3') selectOption('C');
+        if (e.key === '4') selectOption('D');
+        if (e.key === 'Enter') confirmAnswer();
+        if (e.key === 'ArrowRight') nextQuestion();
+        if (e.key === 'ArrowLeft') prevQuestion();
+        if (e.key.toLowerCase() === 'r') repeatQuestion();
+        if (e.key.toLowerCase() === 's') stopSound();
+    });
+
+    window.onload = getFemaleVoice;
+</script>
+</body>
+</html>

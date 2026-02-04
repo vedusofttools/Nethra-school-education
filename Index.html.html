@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>V Software Suite</title>
+    <style>
+        :root {
+            --sidebar-width: 260px;
+            --sidebar-bg: #2c3e50;
+            --highlight: #f39c12; /* Orange */
+            --link-hover: #34495e;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            margin: 0; padding: 0;
+            background: #f8f9fa;
+            display: flex; 
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            color: white;
+            padding: 20px;
+            flex-shrink: 0; 
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+            z-index: 20;
+        }
+
+        .sidebar h2 { 
+            font-size: 1.2rem; 
+            border-bottom: 1px solid #455a64; 
+            padding-bottom: 15px; 
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .category-label {
+            font-size: 0.75rem; color: #7f8c8d;
+            margin-top: 15px; text-transform: uppercase;
+        }
+
+        .nav-link {
+            display: block; color: #bdc3c7;
+            text-decoration: none; padding: 12px;
+            margin: 4px 0; border-radius: 8px;
+            border-left: 5px solid transparent;
+        }
+
+        .nav-link:hover { background: var(--link-hover); color: white; }
+
+        /* --- ORANGE HIGHLIGHTER --- */
+        #target-nethra:target ~ .sidebar [href="#target-nethra"],
+        #target-blank:target ~ .sidebar [href="#target-blank"],
+        #target-eco:target ~ .sidebar [href="#target-eco"],
+        #target-civics:target ~ .sidebar [href="#target-civics"],
+        #target-comm:target ~ .sidebar [href="#target-comm"],
+        #target-hist:target ~ .sidebar [href="#target-hist"] {
+            background: #1a252f;
+            color: white;
+            border-left: 5px solid var(--highlight);
+        }
+
+        /* --- MAIN VIEWPORT --- */
+        .main-view {
+            flex-grow: 1; 
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            position: relative;
+        }
+
+        .fancy-header {
+            background: white;
+            padding: 15px 30px;
+            border-bottom: 2px solid var(--highlight);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 15;
+        }
+
+        .fancy-header h1 { margin: 0; font-size: 1.5rem; color: var(--sidebar-bg); }
+        .fancy-header h1 span { color: var(--highlight); }
+
+        /* --- THE FIX: DISPLAY LOGIC --- */
+        .doc-container {
+            position: absolute;
+            top: 65px; left: 0;
+            width: 100%;
+            height: calc(100% - 65px);
+            display: none; /* Hide everything initially */
+        }
+
+        /* Show based on Target */
+        #target-nethra:target ~ .main-view #view-nethra,
+        #target-blank:target ~ .main-view #view-blank,
+        #target-eco:target ~ .main-view #view-eco,
+        #target-civics:target ~ .main-view #view-civics,
+        #target-comm:target ~ .main-view #view-comm,
+        #target-hist:target ~ .main-view #view-hist {
+            display: block;
+        }
+
+        /* Default: Show first file if no selection is made */
+        .main-view #view-nethra { display: block; }
+        :target ~ .main-view #view-nethra { display: none; }
+        #target-nethra:target ~ .main-view #view-nethra { display: block; }
+
+        iframe { width: 100%; height: 100%; border: none; }
+    </style>
+</head>
+<body>
+
+    <div id="target-nethra"></div>
+    <div id="target-blank"></div>
+    <div id="target-eco"></div>
+    <div id="target-civics"></div>
+    <div id="target-comm"></div>
+    <div id="target-hist"></div>
+
+    <nav class="sidebar">
+        <h2>Study Hub</h2>
+        <div class="category-label">Accounts</div>
+        <a href="#target-nethra" class="nav-link">📁 acc nethra</a>
+        <a href="#target-blank" class="nav-link">📁 Accounts blank</a>
+        
+        <div class="category-label">Social Sciences</div>
+        <a href="#target-eco" class="nav-link">📊 Economics</a>
+        <a href="#target-civics" class="nav-link">🏛️ Civics</a>
+        <a href="#target-hist" class="nav-link">📜 History</a>
+
+        <div class="category-label">Business</div>
+        <a href="#target-comm" class="nav-link">💼 Commerce</a>
+    </nav>
+
+    <main class="main-view">
+        <header class="fancy-header">
+            <h1><span>V</span> SOFTWARE SUITE</h1>
+        </header>
+
+        <div id="view-nethra" class="doc-container"><iframe src="acc nethra.html"></iframe></div>
+        <div id="view-blank" class="doc-container"><iframe src="Accounts blank.html"></iframe></div>
+        <div id="view-eco" class="doc-container"><iframe src="economics.html"></iframe></div>
+        <div id="view-civics" class="doc-container"><iframe src="civics.html"></iframe></div>
+        <div id="view-comm" class="doc-container"><iframe src="commerce.html"></iframe></div>
+        <div id="view-hist" class="doc-container"><iframe src="history.html"></iframe></div>
+    </main>
+
+</body>
+</html>

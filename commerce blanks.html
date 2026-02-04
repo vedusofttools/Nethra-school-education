@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commerce Interactive Mock Tests</title>
+    <style>
+        :root { --primary: #1e293b; --success: #10b981; --error: #ef4444; --bg: #f8fafc; --accent: #6366f1; --nav: #3b82f6; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        .container { max-width: 800px; width: 100%; background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; min-height: 500px; }
+        
+        /* Grid for 6 Mock Tests */
+        .test-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 30px; }
+        .test-card { background: var(--primary); color: white; padding: 25px; border-radius: 12px; cursor: pointer; font-size: 1.2em; font-weight: bold; transition: 0.3s; }
+        .test-card:hover { background: var(--accent); transform: translateY(-3px); }
+
+        .nav-info { display: flex; justify-content: space-between; margin-bottom: 25px; color: #64748b; font-weight: 600; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+        .question-text { font-size: 1.6em; color: #1e293b; margin-bottom: 30px; line-height: 1.4; min-height: 100px; }
+        
+        .answer-input { width: 90%; padding: 18px; font-size: 1.4em; border: 3px solid #e2e8f0; border-radius: 15px; text-align: center; outline: none; transition: 0.3s; margin-bottom: 20px; }
+        .answer-input:focus { border-color: var(--accent); box-shadow: 0 0 15px rgba(99, 102, 241, 0.1); }
+        
+        .btn { color: white; border: none; padding: 14px 24px; border-radius: 50px; cursor: pointer; font-weight: bold; margin: 5px; font-size: 1em; }
+        .btn-confirm { background: var(--success); width: 100%; max-width: 350px; font-size: 1.2em; }
+        .btn-sound { background: #64748b; }
+        .btn-spell { background: #f59e0b; }
+        
+        .status-msg { margin-top: 25px; font-size: 1.3em; font-weight: bold; min-height: 1.5em; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="homeScreen">
+        <h1 style="color: var(--primary); margin-bottom: 10px;">Commerce Mock Center</h1>
+        <p style="color: #64748b;">Type the answer, press Enter to check. Use Arrow keys to navigate.</p>
+        <div class="test-grid">
+            <div class="test-card" onclick="initTest(1)">📘 Mock Test 1</div>
+            <div class="test-card" onclick="initTest(2)">📘 Mock Test 2</div>
+            <div class="test-card" onclick="initTest(3)">📘 Mock Test 3</div>
+            <div class="test-card" onclick="initTest(4)">📘 Mock Test 4</div>
+            <div class="test-card" onclick="initTest(5)">📘 Mock Test 5</div>
+            <div class="test-card" onclick="initTest(6)">📘 Mock Test 6</div>
+        </div>
+    </div>
+
+    <div id="quizScreen" class="hidden">
+        <div class="nav-info">
+            <span id="soundLabel">🔊 Sound: ON</span>
+            <span id="testProgress">Question 1/20</span>
+        </div>
+
+        <p class="question-text" id="qDisplay">Loading...</p>
+
+        <input type="text" id="userInp" class="answer-input" placeholder="Type answer here..." autocomplete="off">
+        <br>
+        <button class="btn btn-confirm" onclick="checkAnswer()">Confirm (Enter)</button>
+
+        <div class="status-msg" id="msgDisplay"></div>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #f1f5f9;">
+            <button class="btn btn-sound" onclick="toggleAudio()">🔇 Mute (M)</button>
+            <button class="btn btn-spell" onclick="spellWord()">🔤 Spell (Shift)</button>
+            <button class="btn" style="background: var(--accent)" onclick="replayQ()">🔊 Repeat (R)</button>
+            <div style="margin-top: 15px;">
+                <button class="btn" style="background: var(--nav)" onclick="goPrev()">← Previous</button>
+                <button class="btn" style="background: var(--nav)" onclick="goNext()">Next →</button>
+                <button class="btn" style="background: #94a3b8" onclick="location.reload()">🏠 Home</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* ==========================================
+       JSON DATA (Example set of 120 questions)
+       ========================================== */
+    const allQuestionsBank = [
+  
+  { "id": 1, "q": "The term business refers to the state of being ________.", "a": "Busy" },
+  { "id": 2, "q": "All the activities of human beings can be broadly classified into economic and ________ activities.", "a": "Non-Economic" },
+  { "id": 3, "q": "Economic activities refer to the activities involved with ________.", "a": "Money" },
+  { "id": 4, "q": "Chartered Accountant (CA) is an example of ________.", "a": "Profession" },
+  { "id": 5, "q": "The relationship between the employer and employee is master and ________.", "a": "Servant" },
+  { "id": 6, "q": "________ are known as intangible and invisible goods.", "a": "Services" },
+  { "id": 7, "q": "________ goods are meant for direct use by the ultimate consumers.", "a": "Consumer goods" },
+  { "id": 8, "q": "________ goods are used for the production of consumer or capital goods.", "a": "Producer goods" },
+  { "id": 9, "q": "The primary objective of business is to earn ________.", "a": "Profit" },
+  { "id": 10, "q": "________ implies uncertainty of profit or possibility of loss.", "a": "Risk" },
+  { "id": 11, "q": "The primary aim of business should be service and subsidiary aim should be earning profit was pronounced by ________.", "a": "Henry Ford" },
+
+  { "id": 12, "q": "The production side of business activity is referred to as ________.", "a": "Industry" },
+  { "id": 13, "q": "Industry plus commerce is known as ________.", "a": "Business" },
+  { "id": 14, "q": "Trade plus aids to trade is known as ________.", "a": "Commerce" },
+  { "id": 15, "q": "________ refers to the quality of life enjoyed by members of a society.", "a": "Standard of living" },
+  { "id": 16, "q": "Domestic trade is also known as ________ trade.", "a": "Home trade" },
+  { "id": 17, "q": "External trade is also known as ________ trade.", "a": "Foreign trade" },
+  { "id": 18, "q": "Entrepot trade is also known as ________ trade.", "a": "Re-export" },
+  { "id": 19, "q": "Personal hindrance can be removed by ________.", "a": "Trade" },
+  { "id": 20, "q": "________ removes the hindrance of place.", "a": "Transport" },
+  { "id": 21, "q": "________ removes the hindrance of finance.", "a": "Banking" },
+  { "id": 22, "q": "________ removes the hindrance of time.", "a": "Warehousing" },
+  { "id": 23, "q": "________ removes the hindrance of risk.", "a": "Insurance" },
+  { "id": 24, "q": "________ removes the hindrance of knowledge.", "a": "Advertisement" },
+  { "id": 25, "q": "________ removes the hindrance of information.", "a": "Communication" },
+  { "id": 26, "q": "The link between producers and retailers is ________.", "a": "Wholesalers" },
+  { "id": 27, "q": "The link between wholesalers and consumers is ________.", "a": "Retailers" },
+
+  { "id": 28, "q": "The oldest form of business organization is ________.", "a": "Sole proprietorship" },
+  { "id": 29, "q": "Sole proprietorship is also known as ________ entrepreneurship.", "a": "Individual" },
+  { "id": 30, "q": "A sole proprietorship has ________ owner.", "a": "Single" },
+  { "id": 31, "q": "The liability of a sole proprietor is ________.", "a": "Unlimited" },
+  { "id": 32, "q": "Ownership and management are vested in ________ in sole proprietorship.", "a": "One person" },
+
+  { "id": 33, "q": "Business owned by three generations is called ________ business.", "a": "Joint Hindu Family" },
+  { "id": 34, "q": "Membership of Joint Hindu Family business is acquired by ________.", "a": "Birth" },
+  { "id": 35, "q": "Joint Hindu Family business is governed by ________ and ________ laws.", "a": "Dayabhaga and Mitakshara" },
+  { "id": 36, "q": "Dayabhaga law prevails in ________ and ________.", "a": "Assam and West Bengal" },
+  { "id": 37, "q": "Mitakshara law provides ________ ownership.", "a": "Fluctuating" },
+  { "id": 38, "q": "Hindu Succession Act was passed in ________.", "a": "1956" },
+  { "id": 39, "q": "The head of Joint Hindu Family business is called ________.", "a": "Karta" },
+  { "id": 40, "q": "The liability of Karta is ________.", "a": "Unlimited" },
+
+  { "id": 41, "q": "Cooperation is derived from the Latin word ________.", "a": "Co-operari" },
+  { "id": 42, "q": "Cooperation means working ________.", "a": "Together" },
+  { "id": 43, "q": "The motto of cooperative society is each for all and all for ________.", "a": "Each" },
+  { "id": 44, "q": "Minimum members to form cooperative society is ________.", "a": "10" },
+  { "id": 45, "q": "Cooperative societies in India are governed by Act of ________.", "a": "1912" },
+
+  { "id": 46, "q": "Persons who form partnership are called ________.", "a": "Partners" },
+  { "id": 47, "q": "Indian Partnership Act was passed in ________.", "a": "1932" },
+  { "id": 48, "q": "Every partner is a principal and an ________.", "a": "Agent" },
+  { "id": 49, "q": "Registration of partnership firm is ________.", "a": "Not compulsory" },
+  { "id": 50, "q": "Partnership is defined under section ________ of Partnership Act.", "a": "4" },
+
+  { "id": 51, "q": "Capital of a company is divided into ________.", "a": "Shares" },
+  { "id": 52, "q": "Owners of company are called ________.", "a": "Shareholders" },
+  { "id": 53, "q": "Companies Act was enacted in ________.", "a": "2013" },
+  { "id": 54, "q": "Day-to-day management of company is done by ________.", "a": "Board of Directors" },
+
+  { "id": 55, "q": "Promotion is the process of ________ a company.", "a": "Formation" },
+  { "id": 56, "q": "The constitution of a company is called ________.", "a": "Memorandum of Association" },
+  { "id": 57, "q": "Rules for internal management are called ________.", "a": "Articles of Association" },
+  { "id": 58, "q": "Invitation to public to subscribe shares is called ________.", "a": "Prospectus" },
+
+  { "id": 59, "q": "Funds required for day-to-day operations are called ________.", "a": "Working capital" },
+  { "id": 60, "q": "Funds required for long period are called ________ capital.", "a": "Fixed" },
+
+  { "id": 61, "q": "E-business means use of ________ in business.", "a": "ICT" },
+  { "id": 62, "q": "ICT stands for Information and ________ Technology.", "a": "Communication" },
+  { "id": 63, "q": "COD means ________ on delivery.", "a": "Cash" },
+  { "id": 64, "q": "P2P means peer to ________.", "a": "Peer" },
+  { "id": 65, "q": "Demonetization took place in ________.", "a": "2016" },
+
+  { "id": 66, "q": "Number of Indian Accounting Standards accepted worldwide is ________.", "a": "35" },
+  { "id": 67, "q": "IASC stands for ________.", "a": "International Accounting Standards Committee" },
+  { "id": 68, "q": "Preparing financial statements to know performance is called ________ concept.", "a": "Accounting period" },
+  { "id": 69, "q": "Active partners are also called ________ partners.", "a": "Working" },
+  { "id": 70, "q": "A sleeping partner is also called a ________ partner.", "a": "Dormant" },
+  { "id": 71, "q": "Nominal partners are ________ to third parties for the acts of the firm.", "a": "Liable" },
+  { "id": 72, "q": "The liability of partners in a partnership firm is ________.", "a": "Unlimited" },
+  { "id": 73, "q": "Partners in profits apply only to ________ partners.", "a": "Minor" },
+
+  { "id": 74, "q": "The capital of a company is divided into small units called ________.", "a": "Shares" },
+  { "id": 75, "q": "Members who invest money by purchasing shares are called ________.", "a": "Shareholders" },
+  { "id": 76, "q": "A company comes into existence when registered under Companies Act of ________.", "a": "2013" },
+  { "id": 77, "q": "Elected representatives managing company affairs are called ________.", "a": "Board of Directors" },
+  { "id": 78, "q": "East India Company is an example of a ________ company.", "a": "Chartered" },
+  { "id": 79, "q": "A company created by special Act of Parliament is called a ________ company.", "a": "Statutory" },
+  { "id": 80, "q": "The minimum paid-up capital of a private company is ________.", "a": "One lakh rupees" },
+  { "id": 81, "q": "The minimum paid-up capital of a public company is ________.", "a": "Five lakh rupees" },
+  { "id": 82, "q": "A company controlling another company is called a ________ company.", "a": "Holding" },
+  { "id": 83, "q": "A private company must suffix its name with ________.", "a": "Private Limited" },
+
+  { "id": 84, "q": "The process of organizing and planning finance of a company is called ________.", "a": "Promotion" },
+  { "id": 85, "q": "The constitution of a company is known as ________.", "a": "Memorandum of Association" },
+  { "id": 86, "q": "The proposed name of a company should not violate the ________ Act, 1950.", "a": "Emblems and Names" },
+  { "id": 87, "q": "Rules for internal management of a company are called ________.", "a": "Articles of Association" },
+  { "id": 88, "q": "A substitute for prospectus is called ________.", "a": "Statement in lieu of prospectus" },
+  { "id": 89, "q": "A public company must collect ________ before allotment of shares.", "a": "Minimum subscription" },
+  { "id": 90, "q": "A public company cannot commence business without ________.", "a": "Certificate of commencement" },
+  { "id": 91, "q": "Minimum subscription must be received within ________ days.", "a": "120" },
+  { "id": 92, "q": "An invitation to public to subscribe shares is called ________.", "a": "Prospectus" },
+  { "id": 93, "q": "Every private company must prepare its own ________.", "a": "Articles of Association" },
+
+  { "id": 94, "q": "Funds required for business activities are called ________.", "a": "Business finance" },
+  { "id": 95, "q": "Funds required to purchase fixed assets are called ________.", "a": "Fixed capital" },
+  { "id": 96, "q": "Funds required for day-to-day operations are called ________.", "a": "Working capital" },
+  { "id": 97, "q": "Funds required for more than one year but less than five years are ________ finance.", "a": "Medium term" },
+  { "id": 98, "q": "Funds required for more than five years are ________ finance.", "a": "Long term" },
+  { "id": 99, "q": "Funds required for less than one year are ________ finance.", "a": "Short term" },
+  { "id": 100, "q": "Equity shares and retained earnings are sources of ________ funds.", "a": "Owners" },
+  { "id": 101, "q": "Capital obtained by issuing shares is called ________ capital.", "a": "Share" },
+  { "id": 102, "q": "The person holding shares is called a ________.", "a": "Shareholder" },
+  { "id": 103, "q": "Equity and preference are types of ________.", "a": "Shares" },
+  { "id": 104, "q": "Retained earnings are also called ________.", "a": "Ploughing back of profits" },
+  { "id": 105, "q": "Debenture holders are ________ of the company.", "a": "Creditors" },
+  { "id": 106, "q": "ZID stands for ________.", "a": "Zero interest debentures" },
+  { "id": 107, "q": "Public deposits are regulated by ________.", "a": "Reserve Bank of India" },
+  { "id": 108, "q": "An unsecured promissory note for short-term funds is called ________.", "a": "Commercial paper" },
+  { "id": 109, "q": "CRISIL stands for ________.", "a": "Credit Rating and Information Services of India Limited" },
+  { "id": 110, "q": "Equity shareholders are also called ________ owners.", "a": "Residual" }
+
+    ];
+
+    // Dummy fill for the example (Generating 120 items so the buttons work)
+    for(let i=allQuestionsBank.length; i<120; i++) {
+        allQuestionsBank.push({ "q": "Question " + (i+1) + " for commerce. The answer is ________.", "a": "Test" });
+    }
+
+    let currentMockSet = [];
+    let qIndex = 0;
+    let score = 0;
+    let audioActive = true;
+    let femaleVoice = null;
+    let isAnswered = false;
+
+    // VOICE CONFIG
+    function initVoices() {
+        const v = window.speechSynthesis.getVoices();
+        femaleVoice = v.find(x => x.name.includes('Female') || x.name.includes('Google US English')) || v[0];
+    }
+    window.speechSynthesis.onvoiceschanged = initVoices;
+
+    function speak(text) {
+        window.speechSynthesis.cancel();
+        if (!audioActive) return;
+        const msg = new SpeechSynthesisUtterance(text);
+        if (femaleVoice) msg.voice = femaleVoice;
+        msg.rate = 0.9; msg.pitch = 1.1;
+        window.speechSynthesis.speak(msg);
+    }
+
+    // NAVIGATION & LOGIC
+    function initTest(testNum) {
+        document.getElementById('homeScreen').classList.add('hidden');
+        document.getElementById('quizScreen').classList.remove('hidden');
+        
+        // Fetch specific 20 questions based on test number
+        const start = (testNum - 1) * 20;
+        currentMockSet = allQuestionsBank.slice(start, start + 20);
+        
+        qIndex = 0;
+        score = 0;
+        loadQ();
+    }
+
+    function loadQ() {
+        isAnswered = false;
+        const data = currentMockSet[qIndex];
+        document.getElementById('qDisplay').innerText = data.q;
+        document.getElementById('testProgress').innerText = `Question ${qIndex + 1}/20`;
+        document.getElementById('msgDisplay').innerText = "";
+        
+        const input = document.getElementById('userInp');
+        input.value = "";
+        input.focus();
+        
+        replayQ();
+    }
+
+    function replayQ() {
+        speak("Question " + (qIndex + 1) + ". " + currentMockSet[qIndex].q.replace(/_+/g, " blank "));
+    }
+
+    function checkAnswer() {
+        if (isAnswered) return;
+        const user = document.getElementById('userInp').value.trim().toLowerCase();
+        const correct = currentMockSet[qIndex].a.toLowerCase();
+        
+        if (user === "") { speak("Please type an answer."); return; }
+
+        isAnswered = true;
+        if (user === correct) {
+            score++;
+            document.getElementById('msgDisplay').innerText = "✅ Correct!";
+            document.getElementById('msgDisplay').style.color = "var(--success)";
+            speak("Correct! The answer is " + currentMockSet[qIndex].a);
+        } else {
+            document.getElementById('msgDisplay').innerText = "❌ Wrong. Answer: " + currentMockSet[qIndex].a;
+            document.getElementById('msgDisplay').style.color = "var(--error)";
+            speak("Wrong. The correct answer is " + currentMockSet[qIndex].a + ". Press Shift to hear the spelling.");
+        }
+    }
+
+    function spellWord() {
+        const word = currentMockSet[qIndex].a;
+        speak("The spelling is: " + word.split("").join(", "));
+    }
+
+    function toggleAudio() {
+        audioActive = !audioActive;
+        document.getElementById('soundLabel').innerText = audioActive ? "🔊 Sound: ON" : "🔇 Sound: OFF";
+        if (!audioActive) window.speechSynthesis.cancel();
+    }
+
+    function goNext() {
+        if (qIndex < 19) { qIndex++; loadQ(); } 
+        else { 
+            speak("Mock completed. Your score is " + score + " out of 20.");
+            alert("Test Finished! Score: " + score + "/20");
+            location.reload();
+        }
+    }
+
+    function goPrev() {
+        if (qIndex > 0) { qIndex--; loadQ(); }
+    }
+
+    // KEYBOARD HANDLERS
+    window.addEventListener('keydown', (e) => {
+        if (document.getElementById('quizScreen').classList.contains('hidden')) return;
+
+        if (e.key === 'Enter') {
+            if (!isAnswered) checkAnswer();
+            else goNext();
+        }
+        if (e.key === 'ArrowRight') goNext();
+        if (e.key === 'ArrowLeft') goPrev();
+        if (e.key === 'Shift') spellWord();
+        if (e.key.toLowerCase() === 'r') replayQ();
+        if (e.key.toLowerCase() === 'm') toggleAudio();
+    });
+
+    window.onload = initVoices;
+</script>
+
+</body>
+</html>
