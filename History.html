@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>History Master – Voice Based Chapters</title>
+
+<style>
+:root {
+  --primary:#2c3e50;
+  --accent:#8e44ad;
+  --success:#27ae60;
+  --error:#e74c3c;
+  --nav:#3498db;
+  --bg:#f4f7f6;
+}
+
+body {
+  margin:0;
+  padding:20px;
+  background:var(--bg);
+  font-family:Segoe UI, sans-serif;
+  display:flex;
+  justify-content:center;
+}
+
+.container {
+  width:100%;
+  max-width:820px;
+  background:#fff;
+  padding:30px;
+  border-radius:15px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.1);
+}
+
+.menu-grid {
+  display:grid;
+  grid-template-columns: 1fr; /* Single column for longer titles */
+  gap:15px;
+  margin-top:30px;
+}
+
+.menu-card {
+  background:var(--primary);
+  color:#fff;
+  padding:20px;
+  border-radius:10px;
+  font-size:1.2em;
+  font-weight:bold;
+  text-align:left;
+  cursor:pointer;
+  transition: background 0.3s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.menu-card span.q-count {
+  background: rgba(255,255,255,0.2);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.8em;
+}
+
+.menu-card:hover {
+  background:var(--accent);
+}
+
+.nav-info {
+  display:flex;
+  justify-content:space-between;
+  font-weight:bold;
+  color:#7f8c8d;
+  border-bottom:1px solid #eee;
+  padding-bottom:10px;
+  margin-bottom:20px;
+  font-size: 1.1em;
+}
+
+.question-text {
+  font-size:1.4em;
+  text-align:center;
+  color:var(--primary);
+  margin-bottom:25px;
+  min-height:3em;
+}
+
+.option {
+  border:2px solid #eee;
+  padding:15px;
+  border-radius:10px;
+  font-size:1.2em;
+  cursor:pointer;
+  margin-bottom:10px;
+}
+
+.option.selected {
+  background:#f4f0ff;
+  border-color:var(--accent);
+}
+
+.correct {
+  background:#d4edda !important;
+  border-color:var(--success) !important;
+}
+
+.wrong {
+  background:#f8d7da !important;
+  border-color:var(--error) !important;
+}
+
+.controls-row {
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin-top:15px;
+  flex-wrap:wrap;
+}
+
+.btn {
+  padding:12px 20px;
+  border:none;
+  border-radius:25px;
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.btn-nav { background:var(--nav); }
+.btn-confirm { background:var(--success); }
+.btn-repeat { background:var(--accent); }
+.btn-stop { background:#c0392b; }
+.btn-home { background:#7f8c8d; }
+
+.hidden { display:none; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div id="homeScreen">
+  <h1 style="text-align:center;color:var(--primary)">History Chapter Tests</h1>
+  <p style="text-align:center;color:#666">Select a chapter to begin</p>
+
+  <div class="menu-grid" id="menuGrid">
+    </div>
+</div>
+
+<div id="quizScreen" class="hidden">
+
+  <div class="nav-info">
+    <span id="chapterTitle">Chapter</span>
+    <span id="progressLabel">Question 1/X</span>
+  </div>
+
+  <div class="question-text" id="qText"></div>
+  <div id="optionsBox"></div>
+
+  <div class="controls-row">
+    <button class="btn btn-nav" onclick="prevQuestion()">← Prev</button>
+    <button class="btn btn-confirm" onclick="confirmAnswer()">Confirm</button>
+    <button class="btn btn-nav" onclick="nextQuestion()">Next →</button>
+  </div>
+
+  <div class="controls-row">
+    <button class="btn btn-repeat" onclick="repeatQuestion()">🔊 Repeat</button>
+    <button class="btn btn-stop" onclick="stopSound()">🛑 Stop</button>
+    <button class="btn btn-home" onclick="goHome()">🏠 Home</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+/* ==========================
+   🔴 HISTORY DYNAMIC DATA
+   ========================== */
+const chaptersData = [
+  {
+    chapterNumber: 1,
+    title: "Introduction to History",
+    questions: [
+      { q: "From where is the term history derived?", options: { A: "Latin word", B: "Roman word", C: "Greek word 'hysteria'", D: "Arabic word" }, correct: "C" },
+      { q: "Who is known as the father of history?", options: { A: "Aristotle", B: "Socrates", C: "Plato", D: "Herodotus" }, correct: "D" },
+      { q: "How did Aristotle define history?", options: { A: "A study of the future", B: "An account of the unchanging past", C: "A record of human conflict", D: "The evolution of societies" }, correct: "B" },
+      { q: "Which is the oldest mountain range in India?", options: { A: "Himalayas", B: "Vindhyas", C: "Aravalli", D: "Satpura" }, correct: "C" },
+      { q: "Which is the highest mountain peak in the Himalayas?", options: { A: "K2", B: "Mount Everest", C: "Kangchenjunga", D: "Nanda Devi" }, correct: "B" },
+      { q: "What is the study of inscriptions called?", options: { A: "Numismatics", B: "Epigraphy", C: "Archaeology", D: "Calligraphy" }, correct: "B" },
+      { q: "From where does the Ganga river originate?", options: { A: "Kailash Mountain", B: "Mansarovar Lake", C: "Yamunotri", D: "Gangotri glacier" }, correct: "D" },
+      { q: "What is the study of coins called?", options: { A: "Numismatics", B: "Epigraphy", C: "Philately", D: "Archaeology" }, correct: "A" },
+      { q: "Which two rivers flow towards the western coast of India?", options: { A: "Ganga and Yamuna", B: "Krishna and Godavari", C: "Narmada and Tapti", D: "Mahanadi and Cauvery" }, correct: "C" },
+      { q: "What are the five tributaries of river Indus?", options: { A: "Ganga, Yamuna, Kosi, Gandak, Son", B: "Jhelum, Chenab, Ravi, Beas, Sutlej", C: "Narmada, Tapti, Mahi, Sabarmati, Luni", D: "Krishna, Godavari, Cauvery, Pennar, Tungabhadra" }, correct: "B" },
+      { q: "Which is the longest and largest tributary of Ganga?", options: { A: "Gomathi", B: "Sarayu", C: "Kosi", D: "Yamuna" }, correct: "D" }
+    ]
+  },
+  {
+    chapterNumber: 2,
+    title: "Ancient Indian Civilizations and Cultures",
+    questions: [
+      { q: "Which is the earliest Veda?", options: { A: "Samaveda", B: "Atharvaveda", C: "Yajurveda", D: "Rigveda" }, correct: "D" },
+      { q: "Which is the Port city of the Indus Valley civilisation?", options: { A: "Harappa", B: "Lothal", C: "Mohenjo Daro", D: "Kalibangan" }, correct: "B" },
+      { q: "Which city is called as the mound of the dead?", options: { A: "Harappa", B: "Mohenjo Daro", C: "Lothal", D: "Dholavira" }, correct: "B" },
+      { q: "Who was the chief female deity of the Indus civilisation?", options: { A: "Goddess Saraswati", B: "Pashupati", C: "The Mother Goddess", D: "Goddess Lakshmi" }, correct: "C" },
+      { q: "What is the other name of Indus Valley civilisation?", options: { A: "Vedic civilisation", B: "Aryan civilisation", C: "Harappan civilisation", D: "Mesopotamian civilisation" }, correct: "C" }
+    ]
+  },
+  {
+    chapterNumber: 3,
+    title: "Early States, Empires and Economy",
+    questions: [
+      { q: "Which of the Mahajanapadas was a republic?", options: { A: "Magadha", B: "Kosala", C: "Vatsa", D: "Malla" }, correct: "D" },
+      { q: "Which was the capital of Vijji Maha Janapada?", options: { A: "Pataliputra", B: "Vaishali", C: "Rajagriha", D: "Ujjain" }, correct: "B" },
+      { q: "Which was the first dynasty to rule Magadha?", options: { A: "Nanda Dynasty", B: "Maurya Dynasty", C: "Haryanka Dynasty", D: "Shishunaga Dynasty" }, correct: "C" },
+      { q: "Which rulers were contemporaries to Gautama Buddha?", options: { A: "Chandragupta and Ashoka", B: "Bimbisara and Ajatasatru", C: "Bindusara and Kanishka", D: "Harsha and Pulakesin" }, correct: "B" },
+      { q: "To which dynasty does Bimbisara belong to?", options: { A: "Nanda dynasty", B: "Haryanka dynasty", C: "Maurya dynasty", D: "Shishunaga dynasty" }, correct: "B" },
+      { q: "To where did Sisu Naga shift his capital from Pataliputra?", options: { A: "Rajagriha", B: "Vaishali", C: "Ujjain", D: "Taxila" }, correct: "B" },
+      { q: "Who was the last ruler of the Nanda dynasty?", options: { A: "Mahapadma Nanda", B: "Dhana Nanda", C: "Bimbisara", D: "Ajatasatru" }, correct: "B" },
+      { q: "How many mahajanapadas emerged in the sixth century BCE?", options: { A: "12", B: "14", C: "16", D: "18" }, correct: "C" },
+      { q: "Which of the Mahajanapadas was founded to the South of the Vindhyas or Deccan?", options: { A: "Magadha", B: "Avanti", C: "Asmaka", D: "Vatsa" }, correct: "C" },
+      { q: "Who convened the second Buddhist council in Vaishali?", options: { A: "Ajatasatru", B: "Ashoka", C: "Kanishka", D: "Kalashoka" }, correct: "D" },
+      { q: "Who convened the first Buddhist council in Rajagriha?", options: { A: "Kalashoka", B: "Ashoka", C: "Ajatasatru", D: "Bimbisara" }, correct: "C" }
+    ]
+  },
+  {
+    chapterNumber: 4,
+    title: "Early Societies and Religious Movements",
+    questions: [
+      { q: "Which Veda mentions the Purusha Suktha hymn?", options: { A: "Samaveda", B: "Rigveda", C: "Yajurveda", D: "Atharvaveda" }, correct: "B" },
+      { q: "Where was the first Jaina assembly organised?", options: { A: "Vaishali", B: "Rajagriha", C: "Pataliputra", D: "Lumbini" }, correct: "C" },
+      { q: "Who compiled the Vinaya Pitaka?", options: { A: "Ananda", B: "Upali", C: "Mahakashyapa", D: "Ashoka" }, correct: "B" },
+      { q: "Who was the first woman to join the Buddhist Sangha?", options: { A: "Yashodhara", B: "Sujata", C: "Amrapali", D: "Prajapati Gautami" }, correct: "D" },
+      { q: "Vardhamana Mahavira died at which place?", options: { A: "Lumbini", B: "Kushinagar", C: "Pavapuri", D: "Bodh Gaya" }, correct: "C" },
+      { q: "How were the 11 close disciples of Mahavira called?", options: { A: "Tirthankaras", B: "Gandharas", C: "Bhikshus", D: "Upasakas" }, correct: "B" },
+      { q: "Where was Gautam Buddha born?", options: { A: "Sarnath", B: "Bodh Gaya", C: "Lumbini", D: "Kushinagar" }, correct: "C" },
+      { q: "Gautama Buddha belonged to which dynasty?", options: { A: "Maurya", B: "Saakya", C: "Nanda", D: "Haryanka" }, correct: "B" },
+      { q: "Where did Gautama Buddha give his first sermon?", options: { A: "Bodh Gaya", B: "Sarnath", C: "Lumbini", D: "Rajagriha" }, correct: "B" },
+      { q: "Who was the leader of the Shwethambara sect?", options: { A: "Bhadrabahu", B: "Mahavira", C: "Sthula Bhadra", D: "Rishabhanatha" }, correct: "C" },
+      { q: "What was the primary concept of Gotra?", options: { A: "Religious belief", B: "Clan or ancestral lineage", C: "Territorial boundary", D: "Trade guild" }, correct: "B" },
+      { q: "Where was Jain Mahavira born?", options: { A: "Pataliputra", B: "Vaishali", C: "Rajagriha", D: "Pavapuri" }, correct: "B" },
+      { q: "How many major sects are there in the Jain community?", options: { A: "Two", B: "Three", C: "Four", D: "Five" }, correct: "A" },
+      { q: "How were the Buddhist religious Scriptures known as?", options: { A: "Vedas", B: "Upanishads", C: "Triptakas", D: "Agamas" }, correct: "C" },
+      { q: "Where was the first Buddhist council held?", options: { A: "Vaishali", B: "Pataliputra", C: "Kashmir", D: "Raja Griha" }, correct: "D" }
+    ]
+  },
+  {
+    chapterNumber: 5,
+    title: "India from Third BCE Century to Sixth CE",
+    questions: [
+      { q: "Who influenced Ashoka's conversion to Buddhism?", options: { A: "Upali", B: "Ananda", C: "Upa Gupta", D: "Mahakashyapa" }, correct: "C" },
+      { q: "Where are Ashoka's inscriptions found in Andhra Pradesh?", options: { A: "Amaravati and Nagarjunakonda", B: "Erra Gudi and Rajula Manda Giri", C: "Bhattiprolu and Ghantasala", D: "Kurnool and Kadapa" }, correct: "B" },
+      { q: "What is the capital city of King Kanishka?", options: { A: "Pataliputra", B: "Ujjain", C: "Purusha Puri", D: "Taxila" }, correct: "C" },
+      { q: "Who started the Saka era in ancient India and when?", options: { A: "Ashoka in 261 BCE", B: "Chandragupta in 320 CE", C: "Kanishka in 78 CE", D: "Harsha in 606 CE" }, correct: "C" },
+      { q: "Who is the author of Buddha Charita?", options: { A: "Nagarjuna", B: "Ashwa Ghosha", C: "Charaka", D: "Kalidasa" }, correct: "B" },
+      { q: "Which inscription describes Samudra Gupta's achievements?", options: { A: "Sanchi Stupa", B: "Mehrauli Pillar", C: "Allahabad inscription", D: "Girnar Rock Edict" }, correct: "C" },
+      { q: "Who is the founder of Nalanda University?", options: { A: "Chandragupta I", B: "Samudra Gupta", C: "Kumar Gupta-1", D: "Skanda Gupta" }, correct: "C" },
+      { q: "Which religion was followed by Chandragupta Maurya?", options: { A: "Buddhism", B: "Hinduism", C: "Ajivika", D: "Jain religion" }, correct: "D" },
+      { q: "From which pillar has the emblem of India been taken?", options: { A: "Allahabad pillar", B: "Mehrauli pillar", C: "Sarnath pillar", D: "Sanchi pillar" }, correct: "C" },
+      { q: "Which title was acquired by Chandragupta II after defeating Sakas?", options: { A: "Vikramaditya", B: "Sakari", C: "Kaviraja", D: "Maharajadhiraja" }, correct: "B" },
+      { q: "Which Gupta ruler was given the title as Indian Napoleon?", options: { A: "Chandragupta I", B: "Kumar Gupta", C: "Samudra Gupta", D: "Skanda Gupta" }, correct: "C" },
+      { q: "Who is the author of Suhrulekha?", options: { A: "Ashwa Ghosha", B: "Nagarjuna Acharya", C: "Kalidasa", D: "Aryabhatta" }, correct: "B" },
+      { q: "Harsha Vardhana moved his capital from where to where?", options: { A: "Pataliputra to Ujjain", B: "Thaneswar to Kanauj", C: "Kanauj to Thaneswar", D: "Taxila to Purusha Puri" }, correct: "B" },
+      { q: "Who was the last Mouryan King?", options: { A: "Ashoka", B: "Bindusara", C: "Brihadratha", D: "Pushyamitra" }, correct: "C" },
+      { q: "Who was also called Indian Machiavelli?", options: { A: "Chanakya / Kautilya", B: "Kalidasa", C: "Aryabhatta", D: "Ashwa Ghosha" }, correct: "A" },
+      { q: "Who was the court physician of Kanishka?", options: { A: "Sushruta", B: "Charaka", C: "Jivaka", D: "Patanjali" }, correct: "B" },
+      { q: "During whose reign did the Chinese traveller Fahien visit India?", options: { A: "Harshavardhana", B: "Ashoka", C: "Chandragupta II", D: "Kanishka" }, correct: "C" },
+      { q: "Who is credited with authoring Brihat Samhitha?", options: { A: "Aryabhatta", B: "Brahmagupta", C: "Varaha Mihira", D: "Charaka" }, correct: "C" },
+      { q: "Which ruler of Gupta Dynasty held the title of Kavi raja?", options: { A: "Chandragupta I", B: "Samudra Gupta", C: "Kumar Gupta", D: "Skanda Gupta" }, correct: "B" },
+      { q: "In which book did Arya Bhatta examine the true cause of the solar eclipse?", options: { A: "Brihat Samhitha", B: "Surya Siddhantha", C: "Arthashastra", D: "Buddha Charita" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 6,
+    title: "Deccan and South India (Up to 10th Century CE)",
+    questions: [
+      { q: "Who was the author of Gadha Sapta Sathi?", options: { A: "Gautamiputra Satakarni", B: "Hala", C: "Sri Mukha", D: "Pulakesin" }, correct: "B" },
+      { q: "Which is the capital city built by Karikala Chola?", options: { A: "Tanjore", B: "Madurai", C: "Puhar", D: "Kanchipuram" }, correct: "C" },
+      { q: "Who is the founder of the Satavahana Dynasty?", options: { A: "Gautamiputra Satakarni", B: "Simukha / Sri Mukha", C: "Hala", D: "Yajna Sri Satakarni" }, correct: "B" },
+      { q: "Name the capital city of Pallavas.", options: { A: "Tanjore", B: "Badami", C: "Kanchipuram", D: "Madurai" }, correct: "C" },
+      { q: "Where are the seven pagodas located in India?", options: { A: "Kanchipuram", B: "Mahabalipuram", C: "Tanjore", D: "Badami" }, correct: "B" },
+      { q: "Who was the founder of the Rashtrakuta Dynasty?", options: { A: "Danthi Durga", B: "Krishna I", C: "Amoghavarsha", D: "Dhruva" }, correct: "A" },
+      { q: "Which inscription talks about the Chola village administration?", options: { A: "Aihole inscription", B: "Uttara Meyur inscription", C: "Allahabad inscription", D: "Hathigumpha inscription" }, correct: "B" },
+      { q: "Who built the Brihadeshwara Temple?", options: { A: "Rajendra Chola", B: "Karikala Chola", C: "Raja Raja-1", D: "Narasimha Varma" }, correct: "C" },
+      { q: "Who was the greatest Chalukya king of Badami?", options: { A: "Pulakesin-I", B: "Pulakesin-II", C: "Vikramaditya", D: "Kirtivarman" }, correct: "B" },
+      { q: "What was the meaning of Halakiya during the Satavahana period?", options: { A: "Merchant", B: "Soldier", C: "Cultivator", D: "Priest" }, correct: "C" },
+      { q: "In which year did the Chinese Pilgrim Hiuen Tsang visit the court of Narasimha Varma-I?", options: { A: "542 CE", B: "642 CE", C: "742 CE", D: "842 CE" }, correct: "B" },
+      { q: "Which dynasty was the earliest South Indian dynasty?", options: { A: "Chola", B: "Pallava", C: "Chera", D: "Satavahana Dynasty" }, correct: "D" },
+      { q: "What was the title of Narasimha Varma?", options: { A: "Vathapi Konda", B: "Gangai Konda", C: "Sakari", D: "Vikramaditya" }, correct: "A" },
+      { q: "Who built the famous architectural temples at Aihole, Badami, and Pattadakal?", options: { A: "Pallavas", B: "Cholas", C: "Chalukyas", D: "Rashtrakutas" }, correct: "C" },
+      { q: "Which dynasty was famous for developing village assemblies?", options: { A: "Pallava", B: "Satavahana", C: "Chola", D: "Rashtrakuta" }, correct: "C" },
+      { q: "Who was the greatest ruler of the Vishnu Kundin Dynasty?", options: { A: "Madhav Varma-I", B: "Madhav Varma-II", C: "Govinda Varma", D: "Indra Varma" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 7,
+    title: "Delhi Sultanate",
+    questions: [
+      { q: "Which dynasty of the Delhi Sultanate ruled for the shortest time?", options: { A: "Slave Dynasty", B: "Khalji Dynasty", C: "Tughlaq Dynasty", D: "Lodi Dynasty" }, correct: "B" },
+      { q: "What were the provinces called during the Sultanate period?", options: { A: "Subahs", B: "Iqtas", C: "Parganas", D: "Shiqs" }, correct: "B" },
+      { q: "Which department was headed by Ariz-i-Mumalik during the Delhi Sultanate period?", options: { A: "Finance department", B: "Religious affairs", C: "Military department", D: "Foreign affairs" }, correct: "C" },
+      { q: "Which Sultan shifted his capital from Lahore to Delhi?", options: { A: "Qutb ud din Aibak", B: "Iltutmish", C: "Balban", D: "Razia Sultana" }, correct: "B" },
+      { q: "Qutub Minar was named after which Sufi saint?", options: { A: "Nizamuddin Auliya", B: "Salim Chishti", C: "Khwaja Qutubuddin Bhakthiyar", D: "Farid-ud-din Ganjshakar" }, correct: "C" },
+      { q: "Which ruler of Delhi Sultanate shifted his capital from Delhi to Devagiri?", options: { A: "Alauddin Khalji", B: "Mohammed Bin Tughluq", C: "Firoz Shah Tughlaq", D: "Ibrahim Lodi" }, correct: "B" },
+      { q: "Which Sultan introduced the practises of Sijda, Paibos and Nawroz?", options: { A: "Iltutmish", B: "Alauddin Khalji", C: "Balban", D: "Mohammed Bin Tughluq" }, correct: "C" },
+      { q: "Which Sultan obtained the letters of investiture from the Khalifah?", options: { A: "Qutb ud din Aibak", B: "Iltutmish", C: "Balban", D: "Alauddin Khalji" }, correct: "B" },
+      { q: "Who liquidated the group of forty or the Chalisa?", options: { A: "Iltutmish", B: "Razia Sultana", C: "Balban", D: "Alauddin Khalji" }, correct: "C" },
+      { q: "Which sultan called himself Naib-i-Khudai or Deputy of God?", options: { A: "Iltutmish", B: "Balban", C: "Alauddin Khalji", D: "Mohammed Bin Tughluq" }, correct: "B" },
+      { q: "Who was the founder of Lodi dynasty?", options: { A: "Ibrahim Lodi", B: "Sikandar Lodi", C: "Bahlul Lodi", D: "Daulat Khan Lodi" }, correct: "C" },
+      { q: "Who fought with whom in the first battle of Panipat?", options: { A: "Akbar and Hemu", B: "Ibrahim Lodi and Babur", C: "Marathas and Abdali", D: "Babur and Rana Sanga" }, correct: "B" },
+      { q: "Who has written Tughlaqnama?", options: { A: "Alberuni", B: "Ibn Battuta", C: "Amir Khusrow", D: "Ziauddin Barani" }, correct: "C" },
+      { q: "Who is the author of Kitab-i-Hind?", options: { A: "Amir Khusrow", B: "Alberuni", C: "Ibn Battuta", D: "Abul Fazl" }, correct: "B" },
+      { q: "Name the ruler of Sind during the invasion of Muhammad bin Qasim.", options: { A: "Anandapala", B: "Dahir", C: "Jayapala", D: "Prithviraj" }, correct: "B" },
+      { q: "In which year the second battle of Tarain was fought?", options: { A: "1191 CE", B: "1192 CE", C: "1526 CE", D: "1556 CE" }, correct: "B" },
+      { q: "How many times did Mahmud of Ghazni invade India?", options: { A: "12 times", B: "15 times", C: "17 times", D: "20 times" }, correct: "C" },
+      { q: "Who was known as Lakh Baksh?", options: { A: "Iltutmish", B: "Balban", C: "Qutb ud din Aibak", D: "Alauddin Khalji" }, correct: "C" },
+      { q: "Who was the commander of the South Indian expedition under Alauddin Khalji?", options: { A: "Zafar Khan", B: "Ulugh Khan", C: "Nusrat Khan", D: "Malik Kafur" }, correct: "D" },
+      { q: "Who was called 'a slave of a slave'?", options: { A: "Balban", B: "Qutb ud din Aibak", C: "Iltutmish", D: "Malik Kafur" }, correct: "C" }
+    ]
+  },
+  {
+    chapterNumber: 8,
+    title: "Mughals and Marathas",
+    questions: [
+      { q: "Who was the founder of the Mughal Empire in India?", options: { A: "Akbar", B: "Humayun", C: "Babur", D: "Jahangir" }, correct: "C" },
+      { q: "What was the name of the land Revenue system implemented by Akbar?", options: { A: "Ryotwari", B: "Mahalwari", C: "Permanent Settlement", D: "Zabti or Bundobasth" }, correct: "D" },
+      { q: "Who wrote the Ain-i-Akbari?", options: { A: "Badauni", B: "Abul Fazal", C: "Faizi", D: "Todar Mal" }, correct: "B" },
+      { q: "Which Mughal emperor reintroduced the Jiziya tax on non muslims?", options: { A: "Jahangir", B: "Shah Jahan", C: "Aurangazeb", D: "Bahadur Shah" }, correct: "C" },
+      { q: "Who was the founder of a new religion known as DIN-I-ILLAHI?", options: { A: "Babur", B: "Humayun", C: "Akbar", D: "Aurangzeb" }, correct: "C" },
+      { q: "In which year Shivaji was crowned as Chatrapati?", options: { A: "1665 CE", B: "1674 CE", C: "1680 CE", D: "1707 CE" }, correct: "B" },
+      { q: "What was the capital of Shivaji's kingdom?", options: { A: "Pune", B: "Satara", C: "Raigarh", D: "Kolhapur" }, correct: "C" },
+      { q: "Who was the founder of the House of the Peshwa?", options: { A: "Balaji Baji Rao", B: "Baji Rao I", C: "Balaji Viswanath", D: "Madhav Rao" }, correct: "C" },
+      { q: "Who was popularly known as Nana Saheb?", options: { A: "Balaji Baji Rao", B: "Baji Rao I", C: "Balaji Viswanath", D: "Shivaji" }, correct: "A" },
+      { q: "Among ashtapradhans, who was the incharge of intelligence or espionage?", options: { A: "Peshwa", B: "Amatya", C: "Sachiv", D: "Manthri" }, correct: "D" },
+      { q: "Name the Mughal queen whose name was written on all farmanas and coins.", options: { A: "Mumtaz Mahal", B: "Nurjahan", C: "Jodha Bai", D: "Ruqaiya Begum" }, correct: "B" },
+      { q: "The famous peacock throne was constructed during whose reign?", options: { A: "Akbar", B: "Jahangir", C: "Shah Jahan", D: "Aurangzeb" }, correct: "C" },
+      { q: "What was the original name of the famous musician Tansen?", options: { A: "Mahesh Das", B: "Ramtan Pande", C: "Baz Bahadur", D: "Swami Haridas" }, correct: "B" },
+      { q: "What is the name of the autobiography of Jahangir?", options: { A: "Baburnama", B: "Akbarnama", C: "Tuzk-i-Jahangir", D: "Padshahnama" }, correct: "C" },
+      { q: "What was the unit of measurement of land in the Maratha dominion?", options: { A: "Bigha", B: "Gaj", C: "Kathi", D: "Biswa" }, correct: "C" },
+      { q: "Who succeeded Babur to the Mughal throne?", options: { A: "Akbar", B: "Humayun", C: "Sher Shah", D: "Kamran" }, correct: "B" },
+      { q: "In which language did Babur write Tuzuk-i-Baburi?", options: { A: "Persian", B: "Arabic", C: "Turki", D: "Urdu" }, correct: "C" },
+      { q: "What was the original name of Shah Jahan?", options: { A: "Salim", B: "Khurram", C: "Dara Shikoh", D: "Farid" }, correct: "B" },
+      { q: "Akbar was reputed to be a good player of which game?", options: { A: "Chess", B: "Polo", C: "Nakkarah", D: "Chaupar" }, correct: "C" },
+      { q: "Who murdered Abdul Fazl, the celebrated author of Akbarnama?", options: { A: "Birsingh Bundela", B: "Rana Pratap", C: "Hemu", D: "Sher Shah" }, correct: "A" },
+      { q: "Which Mughal emperor was an excellent connoisseur of paintings?", options: { A: "Babur", B: "Akbar", C: "Jahangir", D: "Aurangzeb" }, correct: "C" },
+      { q: "Which Mughal emperor was called as 'Alamgir'?", options: { A: "Shah Jahan", B: "Aurangzeb", C: "Bahadur Shah", D: "Jahangir" }, correct: "B" },
+      { q: "Who translated Ramayana into Persian at Akbar's court?", options: { A: "Abul Fazal", B: "Faizi", C: "Badayuni", D: "Todar Mal" }, correct: "C" }
+    ]
+  },
+  {
+    chapterNumber: 9,
+    title: "Bhakti and Sufi Traditions",
+    questions: [
+      { q: "Who propounded dvaita philosophy?", options: { A: "Sankaracharya", B: "Ramanujacharya", C: "Madhvacharya", D: "Vallabhacharya" }, correct: "C" },
+      { q: "Who was Ravidas by profession?", options: { A: "Weaver", B: "Cobbler", C: "Farmer", D: "Merchant" }, correct: "B" },
+      { q: "When was Guru Nanak born?", options: { A: "1469", B: "1539", C: "1498", D: "1526" }, correct: "A" },
+      { q: "Who has written Sur sagar?", options: { A: "Tulsidas", B: "Kabir", C: "Surdas", D: "Mirabai" }, correct: "C" },
+      { q: "Yadava Prakasa was a guru of whom?", options: { A: "Sankaracharya", B: "Madhvacharya", C: "Ramananda", D: "Ramanujacharya" }, correct: "D" },
+      { q: "Nimbark was a young contemporary of whom?", options: { A: "Kabir", B: "Ramanujacharya", C: "Guru Nanak", D: "Chaitanya" }, correct: "B" },
+      { q: "In which king's court did Vallabhacharya live for sometime?", options: { A: "Akbar", B: "Harshavardhana", C: "Krishnadevaraya", D: "Shivaji" }, correct: "C" },
+      { q: "Who was the author of Ananda Bhashya?", options: { A: "Ramananda", B: "Tulsidas", C: "Surdas", D: "Kabir" }, correct: "A" },
+      { q: "Name the prominent woman Bhakthi preacher of 16th century.", options: { A: "Andal", B: "Akka Mahadevi", C: "Mirabai", D: "Lalleshwari" }, correct: "C" },
+      { q: "Who is the saviour of modern Hinduism?", options: { A: "Ramanujacharya", B: "Sankaracharya", C: "Madhvacharya", D: "Chaitanya" }, correct: "B" },
+      { q: "Whose preachings were compiled in the form of Dohe?", options: { A: "Surdas", B: "Tulsidas", C: "Guru Nanak", D: "Kabir" }, correct: "D" },
+      { q: "How many Sufi silsilas were there in India according to Abul Fazal?", options: { A: "Ten", B: "Twelve", C: "Fourteen", D: "Sixteen" }, correct: "C" },
+      { q: "Farid-ud-din Masud belongs to which silsila?", options: { A: "Suhrawardi", B: "Chisthi Silsila", C: "Qadiri", D: "Naqshbandi" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 10,
+    title: "Deccan and South India (10th - 19th Century CE)",
+    questions: [
+      { q: "Orugallu was built by whom?", options: { A: "Pratap Rudra", B: "Ganapathi Deva", C: "Rudrama Devi", D: "Beta II" }, correct: "B" },
+      { q: "In which year did the Kakatiya kingdom come to an end?", options: { A: "1323", B: "1336", C: "1565", D: "1290" }, correct: "A" },
+      { q: "Who was the most notable ruler of Araveedu Dynasty?", options: { A: "Aliya Rama Raya", B: "Tirumala Deva Raya", C: "Venkatapati Raya-II", D: "Sri Ranga III" }, correct: "C" },
+      { q: "Who was called as Malkibharam?", options: { A: "Sultan Quli Qutb Mulk", B: "Ibrahim Quli Qutub Shah", C: "Muhammad Quli Qutb Shah", D: "Abul Hasan Tana Shah" }, correct: "B" },
+      { q: "Who was honoured with the award of grand Commander of the star of India?", options: { A: "Mir Osman Ali Khan", B: "Salar Jung I", C: "Mir Mehboob Ali Pasha", D: "Nizam-ul-Mulk" }, correct: "C" },
+      { q: "Who wrote Nritya Ratnavali?", options: { A: "Vidyanatha", B: "Jayapa Senani", C: "Tikkana", D: "Pothana" }, correct: "B" },
+      { q: "Who was the author of the famous book Maha Nataka sudhanidhi?", options: { A: "Harihara II", B: "Devaraya-I", C: "Devaraya-II", D: "Krishnadevaraya" }, correct: "C" },
+      { q: "What was the name of the Royal Court of Krishna Devaraya?", options: { A: "Ashtadiggajas", B: "Bhuvana Vijayam", C: "Navaratnas", D: "Darbar-i-Azam" }, correct: "B" },
+      { q: "Who was called as the second Aristotle of Bahamani rulers?", options: { A: "Alauddin Hasan", B: "Tajuddin Firoz", C: "Mahmud Gawan", D: "Muhammad Shah-II" }, correct: "D" },
+      { q: "Who laid the foundation of the Mecca Masjid?", options: { A: "Ibrahim Quli Qutub Shah", B: "Sultan Muhammad Qutub Shahi", C: "Abul Hasan Tana Shah", D: "Mir Osman Ali Khan" }, correct: "B" },
+      { q: "Who was the greatest ruler of the Kakatiya Dynasty?", options: { A: "Ganapathi Deva", B: "Rudrama Devi", C: "Pratap Rudra-I", D: "Pratap Rudra-II" }, correct: "A" },
+      { q: "In which place is the thousand pillar Temple located?", options: { A: "Warangal", B: "Orugallu", C: "Hanuma Konda", D: "Palampet" }, correct: "C" },
+      { q: "Which Kakatiya ruler committed suicide on the bank of the river Narmada?", options: { A: "Ganapathi Deva", B: "Pratap Rudra-I", C: "Rudrama Devi", D: "Pratap Rudra-II" }, correct: "D" },
+      { q: "Who was the Hindu scholar who assisted Harihara and Bukka Brothers?", options: { A: "Sayana", B: "Vidyaranya Swamy", C: "Ramanuja", D: "Madhva" }, correct: "B" },
+      { q: "Who was the founder of the Bahmani kingdom?", options: { A: "Mahmud Gawan", B: "Tajuddin Firoz", C: "Hasan Gangu", D: "Ahmad Shah" }, correct: "C" },
+      { q: "Which Prime Minister introduced a series of changes in the administration of Asaf Jahi of Hyderabad?", options: { A: "Mir Laiq Ali", B: "Salarjung-1", C: "Maharaja Chandu Lal", D: "Mir Turab Ali Khan" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 11,
+    title: "India Under the Colonial Rule",
+    questions: [
+      { q: "The East India Company had taken Bombay from whom?", options: { A: "The French", B: "The Dutch", C: "The Portuguese", D: "The Marathas" }, correct: "C" },
+      { q: "When did Vasco da Gama reach Calicut?", options: { A: "1492 CE", B: "1498 CE", C: "1502 CE", D: "1510 CE" }, correct: "B" },
+      { q: "When was the General Service Enlistment act passed by Lord Canning?", options: { A: "1853 CE", B: "1856 CE", C: "1857 CE", D: "1858 CE" }, correct: "B" },
+      { q: "At which place was the real beginning of the 1857 revolt made?", options: { A: "Delhi", B: "Kanpur", C: "Jhansi", D: "Meerut" }, correct: "D" },
+      { q: "When was the battle of Wondiwash held?", options: { A: "1757", B: "1760", C: "1764", D: "1799" }, correct: "B" },
+      { q: "Which land revenue system was introduced by Lord Cornwalis?", options: { A: "Ryotwari system", B: "Mahalwari system", C: "Permanent land revenue system", D: "Zabti system" }, correct: "C" },
+      { q: "Where was the Fort Saint George built by East India Company in 1641?", options: { A: "Calcutta", B: "Bombay", C: "Madras", D: "Surat" }, correct: "C" },
+      { q: "Who was the founder of Pondicherry?", options: { A: "Dupleix", B: "Francis Martin", C: "Lally", D: "Robert Clive" }, correct: "B" },
+      { q: "Who abolished the Sati system?", options: { A: "Lord Dalhousie", B: "Lord Cornwallis", C: "William Bentinck", D: "Lord Wellesley" }, correct: "C" },
+      { q: "When was Oudh annexed by Lord Dalhousie?", options: { A: "1848 CE", B: "1853 CE", C: "1854 CE", D: "1856 CE" }, correct: "D" },
+      { q: "Who was the first governor general of Bengal?", options: { A: "Robert Clive", B: "Warren Hastings", C: "Lord William Bentick", D: "Lord Cornwallis" }, correct: "C" },
+      { q: "Who introduced the Enfield rifles in 1856?", options: { A: "Lord Dalhousie", B: "Lord Canning", C: "Lord Mayo", D: "Lord Lytton" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 12,
+    title: "Indian National Movement",
+    questions: [
+      { q: "The Tenali Bomb case was associated with which movement?", options: { A: "Swadeshi movement", B: "Vande Mataram movement", C: "Non-Cooperation movement", D: "Quit India movement" }, correct: "B" },
+      { q: "Where did the Jallianwala Bagh Massacre take place?", options: { A: "Lahore", B: "Delhi", C: "Amritsar", D: "Chandigarh" }, correct: "C" },
+      { q: "The Gandhi Irwin pact was associated with which movement?", options: { A: "Non-Cooperation movement", B: "Civil disobedience movement", C: "Quit India movement", D: "Khilafat movement" }, correct: "B" },
+      { q: "When was the quit India movement started by Gandhi?", options: { A: "1930", B: "1940", C: "1942", D: "1945" }, correct: "C" },
+      { q: "Who founded the Forward Block in 1939?", options: { A: "Jawaharlal Nehru", B: "Sardar Patel", C: "Bhagat Singh", D: "Subhas Chandra Bose" }, correct: "D" },
+      { q: "Who led the tribal movement known as the Rampa rebellion?", options: { A: "Birsa Munda", B: "Alluri Sita Ram Raju", C: "Komaram Bheem", D: "Tantia Tope" }, correct: "B" },
+      { q: "Who gave the slogan Jai Hind?", options: { A: "Mahatma Gandhi", B: "Jawaharlal Nehru", C: "Subash Chandra Bose", D: "Bhagat Singh" }, correct: "C" },
+      { q: "When did India get freedom from British?", options: { A: "26 January 1950", B: "15 August 1947", C: "26 November 1949", D: "30 January 1948" }, correct: "B" },
+      { q: "Who founded the Satya Sodhak Samaj?", options: { A: "Raja Ram Mohan Roy", B: "Swami Vivekananda", C: "Jyotiba Phule", D: "Dr. B.R. Ambedkar" }, correct: "C" },
+      { q: "Who wrote the song Vande Mataram?", options: { A: "Rabindranath Tagore", B: "Bankim Chandra Chatterjee", C: "Sarojini Naidu", D: "Subramania Bharati" }, correct: "B" },
+      { q: "When was the Indian national Congress founded?", options: { A: "1857", B: "1885", C: "1905", D: "1919" }, correct: "B" },
+      { q: "Who started the home rule movement along with Annie Besant?", options: { A: "Mahatma Gandhi", B: "Gopal Krishna Gokhale", C: "Bal Gangadhar Tilak", D: "Lala Lajpat Rai" }, correct: "C" },
+      { q: "The Poona Pact 1932 was signed between Dr. Ambedkar and whom?", options: { A: "Jawaharlal Nehru", B: "Lord Irwin", C: "Gandhi", D: "Sardar Patel" }, correct: "C" },
+      { q: "Who drafted the Kurnool circular?", options: { A: "Tanguturi Prakasam", B: "Kala Venkata Rao", C: "Bhogaraju Pattabhi Sitaramayya", D: "Alluri Sita Ram Raju" }, correct: "B" },
+      { q: "Who had given a slogan 'go back to Vedas'?", options: { A: "Swami Vivekananda", B: "Ramakrishna Paramahamsa", C: "Swami Dayanand Saraswathi", D: "Raja Ram Mohan Roy" }, correct: "C" },
+      { q: "Who was regarded as truly the father of unrest?", options: { A: "Bipin Chandra Pal", B: "Lala Lajpat Rai", C: "Bal Gangadhar Tilak", D: "Bhagat Singh" }, correct: "C" },
+      { q: "What was the name of the first newspaper in India?", options: { A: "The Hindu", B: "Times of India", C: "Bengal Gezette", D: "Amrita Bazar Patrika" }, correct: "C" },
+      { q: "Who imposed censorship on newspapers for the first time in India?", options: { A: "Lord Dalhousie", B: "Lord Wellesley", C: "Lord Lytton", D: "Lord Curzon" }, correct: "B" },
+      { q: "Who is known as the grand old man of India?", options: { A: "Dada bhai Naoroji", B: "Gopal Krishna Gokhale", C: "Surendranath Banerjee", D: "Badruddin Tyabji" }, correct: "A" },
+      { q: "Who was the founder of the Indian national Congress?", options: { A: "W.C. Bonnerjee", B: "A O Hume", C: "Lord Dufferin", D: "Annie Besant" }, correct: "B" },
+      { q: "What was the slogan coined by Bhagat Singh?", options: { A: "Swaraj is my birthright", B: "Do or Die", C: "Inquilab Zindabad", D: "Jai Jawan Jai Kisan" }, correct: "C" }
+    ]
+  }
+];
+
+/* STATE */
+let currentChapterData = null;
+let currentIndex=0, score=0;
+let selectedChoice=null, answered={};
+let voice=null;
+
+/* VOICE (BULLETPROOF FEMALE + BUG FIX + BLANK FILTER) */
+function initVoice(){
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) return;
+
+  // Try to find a clear female/Indian English voice
+  voice = voices.find(v => 
+    v.name.includes("Neerja") || 
+    v.name.includes("Heera") || 
+    v.name.includes("Veena") || 
+    v.name.includes("Google UK English Female") || 
+    v.name.includes("Zira") || 
+    v.name.includes("female")
+  );
+
+  // Fallback if none of the above are found
+  if (!voice) {
+    voice = voices.find(v => v.lang.startsWith("en")) || voices[0];
+  }
+}
+
+// Ensure voices load properly on all browsers
+window.speechSynthesis.onvoiceschanged = initVoice;
+
+function stopSound(){
+  window.speechSynthesis.cancel();
+}
+
+function speak(text){
+  stopSound();
+  
+  if (!voice) initVoice();
+
+  // Replaces underscores with the word "blank"
+  const cleanText = text.replace(/_+/g, " blank ");
+
+  const u = new SpeechSynthesisUtterance(cleanText);
+  
+  // FORCE the language to Indian English (defaults to a clear female voice on most devices)
+  u.lang = 'en-IN';
+  
+  if (voice) u.voice = voice;
+
+  u.rate = 0.75; 
+  u.pitch = 1.0;
+  u.volume = 1.0;
+
+  // CHROME BUG FIX: Prevents the browser from silently deleting the audio before playing
+  window.speechUtteranceChunk = u;
+
+  window.speechSynthesis.speak(u);
+}
+/* DYNAMIC MENU RENDER */
+function renderMenu() {
+  const grid = document.getElementById("menuGrid");
+  grid.innerHTML = "";
+  
+  chaptersData.forEach((ch, index) => {
+    const card = document.createElement("div");
+    card.className = "menu-card";
+    card.onclick = () => startChapter(index);
+    
+    card.innerHTML = `
+      <div>Chapter ${ch.chapterNumber}: ${ch.title}</div>
+      <span class="q-count">${ch.questions.length} Qs</span>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+/* CHAPTER LOGIC */
+function startChapter(index){
+  currentChapterData = chaptersData[index];
+  
+  document.getElementById("homeScreen").classList.add("hidden");
+  document.getElementById("quizScreen").classList.remove("hidden");
+
+  document.getElementById("chapterTitle").innerText = `Chapter ${currentChapterData.chapterNumber}: ${currentChapterData.title}`;
+
+  currentIndex = 0;
+  score = 0;
+  answered = {};
+  loadQuestion();
+}
+
+function loadQuestion(){
+  selectedChoice = null;
+  const q = currentChapterData.questions[currentIndex];
+  const totalQs = currentChapterData.questions.length;
+
+  document.getElementById("qText").innerText = q.q;
+  document.getElementById("progressLabel").innerText = `Question ${currentIndex+1} / ${totalQs}`;
+
+  document.getElementById("optionsBox").innerHTML =
+    ["A","B","C","D"].map((l,i)=>`
+      <div class="option" id="opt-${l}" onclick="selectOption('${l}')">
+        <strong>${i+1}.</strong> ${q.options[l]}
+      </div>
+    `).join("");
+
+  repeatQuestion();
+}
+
+function repeatQuestion(){
+  const q = currentChapterData.questions[currentIndex];
+  speak(
+    `Question ${currentIndex+1}. ${q.q}.
+     Option 1. ${q.options.A}.
+     Option 2. ${q.options.B}.
+     Option 3. ${q.options.C}.
+     Option 4. ${q.options.D}.`
+  );
+}
+
+function selectOption(letter){
+  if (answered[currentIndex]) return;
+
+  selectedChoice = letter;
+  document.querySelectorAll(".option").forEach(o=>o.classList.remove("selected"));
+  document.getElementById(`opt-${letter}`).classList.add("selected");
+
+  speak(`You selected ${currentChapterData.questions[currentIndex].options[letter]}. Press Enter to confirm.`);
+}
+
+function confirmAnswer(){
+  if (!selectedChoice || answered[currentIndex]) return;
+
+  const q = currentChapterData.questions[currentIndex];
+  const correct = q.correct;
+  answered[currentIndex] = true;
+
+  if (selectedChoice === correct){
+    score++;
+    document.getElementById(`opt-${selectedChoice}`).classList.add("correct");
+    speak(`Correct. ${q.options[correct]}`);
+  } else {
+    document.getElementById(`opt-${selectedChoice}`).classList.add("wrong");
+    document.getElementById(`opt-${correct}`).classList.add("correct");
+    speak(`Incorrect. The correct answer is ${q.options[correct]}`);
+  }
+}
+
+function nextQuestion(){
+  const totalQs = currentChapterData.questions.length;
+  if (currentIndex < totalQs - 1){
+    currentIndex++;
+    loadQuestion();
+  } else {
+    speak(`Chapter completed. Your score is ${score} out of ${totalQs}.`);
+  }
+}
+
+function prevQuestion(){
+  if (currentIndex > 0){
+    currentIndex--;
+    loadQuestion();
+  }
+}
+
+function goHome(){
+  stopSound();
+  location.reload();
+}
+
+/* KEYBOARD CONTROLS FOR VISUALLY IMPAIRED STUDENTS */
+window.addEventListener("keydown", e => {
+  
+  // 1. Prevent default browser behavior 
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight", "Enter"].indexOf(e.key) > -1) {
+      e.preventDefault();
+  }
+
+  // 2. Selection Keys
+  if (e.key === "1") selectOption("A");
+  if (e.key === "2") selectOption("B");
+  if (e.key === "3") selectOption("C");
+  if (e.key === "4") selectOption("D");
+  
+  // 3. Confirm Key (Will ONLY confirm, never advance)
+  if (e.key === "Enter") confirmAnswer(); 
+  
+  // 4. Navigation Keys
+  if (e.key === "ArrowRight") nextQuestion(); // Move forward
+  if (e.key === "ArrowLeft") prevQuestion();  // Move backward
+  
+  // 5. Audio Controls
+  if (e.key === "ArrowUp") repeatQuestion();  // Hear the question using Up Arrow
+  if (e.key === "ArrowDown") stopSound();     // Immediately mute the audio
+  if (e.key.toLowerCase() === "r") repeatQuestion(); // Hear the question using 'R' key
+});
+
+window.onload = () => {
+  initVoice();
+  renderMenu();
+};
+</script>
+
+</body>
+</html>

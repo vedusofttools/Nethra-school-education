@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accounts Master – Voice Based Chapters</title>
+
+<style>
+:root {
+  --primary:#2c3e50;
+  --accent:#8e44ad;
+  --success:#27ae60;
+  --error:#e74c3c;
+  --nav:#3498db;
+  --bg:#f4f7f6;
+}
+
+body {
+  margin:0;
+  padding:20px;
+  background:var(--bg);
+  font-family:Segoe UI, sans-serif;
+  display:flex;
+  justify-content:center;
+}
+
+.container {
+  width:100%;
+  max-width:820px;
+  background:#fff;
+  padding:30px;
+  border-radius:15px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.1);
+}
+
+.menu-grid {
+  display:grid;
+  grid-template-columns: 1fr; /* Single column for longer titles */
+  gap:15px;
+  margin-top:30px;
+}
+
+.menu-card {
+  background:var(--primary);
+  color:#fff;
+  padding:20px;
+  border-radius:10px;
+  font-size:1.2em;
+  font-weight:bold;
+  text-align:left;
+  cursor:pointer;
+  transition: background 0.3s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.menu-card span.q-count {
+  background: rgba(255,255,255,0.2);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.8em;
+}
+
+.menu-card:hover {
+  background:var(--accent);
+}
+
+.nav-info {
+  display:flex;
+  justify-content:space-between;
+  font-weight:bold;
+  color:#7f8c8d;
+  border-bottom:1px solid #eee;
+  padding-bottom:10px;
+  margin-bottom:20px;
+  font-size: 1.1em;
+}
+
+.question-text {
+  font-size:1.4em;
+  text-align:center;
+  color:var(--primary);
+  margin-bottom:25px;
+  min-height:3em;
+}
+
+.option {
+  border:2px solid #eee;
+  padding:15px;
+  border-radius:10px;
+  font-size:1.2em;
+  cursor:pointer;
+  margin-bottom:10px;
+}
+
+.option.selected {
+  background:#f4f0ff;
+  border-color:var(--accent);
+}
+
+.correct {
+  background:#d4edda !important;
+  border-color:var(--success) !important;
+}
+
+.wrong {
+  background:#f8d7da !important;
+  border-color:var(--error) !important;
+}
+
+.controls-row {
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin-top:15px;
+  flex-wrap:wrap;
+}
+
+.btn {
+  padding:12px 20px;
+  border:none;
+  border-radius:25px;
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.btn-nav { background:var(--nav); }
+.btn-confirm { background:var(--success); }
+.btn-repeat { background:var(--accent); }
+.btn-stop { background:#c0392b; }
+.btn-home { background:#7f8c8d; }
+
+.hidden { display:none; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div id="homeScreen">
+  <h1 style="text-align:center;color:var(--primary)">Accounts Chapter Tests</h1>
+  <p style="text-align:center;color:#666">Select a chapter to begin</p>
+
+  <div class="menu-grid" id="menuGrid">
+    </div>
+</div>
+
+<div id="quizScreen" class="hidden">
+
+  <div class="nav-info">
+    <span id="chapterTitle">Chapter</span>
+    <span id="progressLabel">Question 1/X</span>
+  </div>
+
+  <div class="question-text" id="qText"></div>
+  <div id="optionsBox"></div>
+
+  <div class="controls-row">
+    <button class="btn btn-nav" onclick="prevQuestion()">← Prev</button>
+    <button class="btn btn-confirm" onclick="confirmAnswer()">Confirm</button>
+    <button class="btn btn-nav" onclick="nextQuestion()">Next →</button>
+  </div>
+
+  <div class="controls-row">
+    <button class="btn btn-repeat" onclick="repeatQuestion()">🔊 Repeat</button>
+    <button class="btn btn-stop" onclick="stopSound()">🛑 Stop</button>
+    <button class="btn btn-home" onclick="goHome()">🏠 Home</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+/* ==========================
+   🔴 ACCOUNTS DYNAMIC DATA
+   ========================== */
+const chaptersData = [
+  {
+    chapterNumber: 1,
+    title: "Book Keeping and Accounting",
+    questions: [
+      { q: "_____ is the branch of knowledge that reveals how to keep a record of business transactions.", options: { A: "Accountancy", B: "Book keeping", C: "Auditing", D: "Management" }, correct: "B" },
+      { q: "The basic objective of book keeping is to have a _____ record of all business transactions.", options: { A: "Temporary", B: "Monthly", C: "Permanent", D: "Annual" }, correct: "C" },
+      { q: "AICPA means:", options: { A: "All India Certified Public Accountants", B: "American Institute of Certified Public Accountants", C: "Association of International Certified Public Accountants", D: "American Institute of Corporate Public Accounts" }, correct: "B" },
+      { q: "AAA means:", options: { A: "American Accounting Association", B: "Asian Accounting Association", C: "Association of Accounting Auditors", D: "Allied Accounting Agency" }, correct: "A" },
+      { q: "_____ is a complete sequence of accounting processes that begins with the recording of business transactions and ends with preparation of final accounts.", options: { A: "The accounting cycle", B: "Book keeping", C: "Auditing", D: "Journalizing" }, correct: "A" },
+      { q: "_____ refers to a systematic knowledge of accounting that covers rules, regulations principles, concepts and conventions and standards that govern the accounting process.", options: { A: "Accounting", B: "Book keeping", C: "Accountancy", D: "Financial management" }, correct: "C" },
+      { q: "_____ refers to the actual process of preparation and presenting the accounting information.", options: { A: "Accountancy", B: "Accounting", C: "Auditing", D: "Book keeping" }, correct: "B" },
+      { q: "Accounting considers _____ transactions only.", options: { A: "Non-monetary", B: "Personal", C: "Monetary", D: "Social" }, correct: "C" },
+      { q: "A person who owns a business is called as a:", options: { A: "Creditor", B: "Proprietor", C: "Debtor", D: "Manager" }, correct: "B" },
+      { q: "The amount invested by the owner in the business is called:", options: { A: "Assets", B: "Drawings", C: "Capital", D: "Liabilities" }, correct: "C" },
+      { q: "_____ can be classified into tangible and intangible.", options: { A: "Liabilities", B: "Assets", C: "Capital", D: "Expenses" }, correct: "B" },
+      { q: "Assets that have a physical existence, seen and touched are called _____ assets.", options: { A: "Intangible", B: "Fictitious", C: "Tangible", D: "Current" }, correct: "C" },
+      { q: "Assets that have no physical existence, seen and touched are called _____ assets.", options: { A: "Tangible", B: "Intangible", C: "Fixed", D: "Current" }, correct: "B" },
+      { q: "_____ refer to the financial obligation of a business.", options: { A: "Assets", B: "Capital", C: "Incomes", D: "Liabilities" }, correct: "D" },
+      { q: "The amount of cash or value of goods withdrawn from the business by the proprietor for his personal use is called:", options: { A: "Capital", B: "Drawings", C: "Expenses", D: "Loss" }, correct: "B" },
+      { q: "Debtors are shown as an _____ in the balance sheet.", options: { A: "Liability", B: "Asset", C: "Income", D: "Expense" }, correct: "B" },
+      { q: "Creditor are shown as a _____ in the balance sheet.", options: { A: "Liability", B: "Asset", C: "Capital", D: "Drawing" }, correct: "A" },
+      { q: "_____ is the difference between revenue and expense.", options: { A: "Capital", B: "Liability", C: "Income", D: "Asset" }, correct: "C" }
+    ]
+  },
+  {
+    chapterNumber: 2,
+    title: "Accounting Principles",
+    questions: [
+      { q: "The necessary assumptions, conditions or postulates upon which the accounting is based are called:", options: { A: "Accounting Principles", B: "Accounting Concepts", C: "Accounting Conventions", D: "Accounting Standards" }, correct: "B" },
+      { q: "The Accounting procedures and practices which guides the accountant in the preparation of accounting records are called:", options: { A: "Accounting Principles", B: "Accounting Concepts", C: "Accounting Conventions", D: "Accounting Standards" }, correct: "A" },
+      { q: "The dual aspect principles is the basis for the _____ of book keeping.", options: { A: "Single entry system", B: "Cash basis system", C: "Double entry system", D: "Accrual system" }, correct: "C" },
+      { q: "The concept of keeping the private affairs of the owner separate from the business affairs is called the _____ concept.", options: { A: "Going concern", B: "Dual aspect", C: "Business entity", D: "Money measurement" }, correct: "C" },
+      { q: "The customs or traditions guiding the preparation of accounts are called:", options: { A: "Accounting Concepts", B: "Accounting Principles", C: "Accounting Standards", D: "Accounting Conventions" }, correct: "D" },
+      { q: "International accounting standards committee was set up in the year:", options: { A: "1965", B: "1973", C: "1980", D: "1992" }, correct: "B" },
+      { q: "The accounting standards board was established in the year:", options: { A: "1977", B: "1985", C: "1960", D: "1995" }, correct: "A" },
+      { q: "The principles that guide and standardize accounting practices are called:", options: { A: "Accounting Standards", B: "Accounting Concepts", C: "Accounting Conventions", D: "Accounting Policies" }, correct: "A" },
+      { q: "The no. of Indian accounting standards at present which are universally acceptable all over the world is:", options: { A: "20", B: "25", C: "35", D: "40" }, correct: "C" },
+      { q: "IASC means:", options: { A: "Indian Accounting Standards Committee", B: "International Accounting Standards Committee", C: "International Association of Standard Costing", D: "Indian Association of Standard Chartered" }, correct: "B" },
+      { q: "The concept of preparing financial statement to ascertain financial performance is called the:", options: { A: "Business entity concept", B: "Dual aspect concept", C: "Accounting period concept", D: "Going concern concept" }, correct: "C" },
+      { q: "The period for which an operating statement is prepared is known as:", options: { A: "Financial year", B: "Assessment year", C: "Accounting period", D: "Calendar year" }, correct: "C" }
+    ]
+  },
+  {
+    chapterNumber: 3,
+    title: "Double Entry Book Keeping System",
+    questions: [
+      { q: "The double entry book keeping system was invented by:", options: { A: "Adam Smith", B: "Luca Pacioli", C: "Arthur Fieldhouse", D: "J.R. Batliboi" }, correct: "B" },
+      { q: "The double entry system was invented in the year:", options: { A: "1494 AD", B: "1594 AD", C: "1694 AD", D: "1794 AD" }, correct: "A" },
+      { q: "The debit aspect and credit aspect form the basis of the:", options: { A: "Single entry system", B: "Cash system", C: "Double entry system", D: "Accrual system" }, correct: "C" },
+      { q: "Capital + liability = _____.", options: { A: "Expenses", B: "Incomes", C: "Assets", D: "Drawings" }, correct: "C" },
+      { q: "Assets - liability = _____.", options: { A: "Capital", B: "Expenses", C: "Incomes", D: "Drawings" }, correct: "A" },
+      { q: "The accounting equation is based on the _____ concept.", options: { A: "Going concern", B: "Dual aspect", C: "Business entity", D: "Money measurement" }, correct: "B" },
+      { q: "The accounts which relate to individuals or persons are known as _____ accounts.", options: { A: "Real", B: "Nominal", C: "Personal", D: "Impersonal" }, correct: "C" },
+      { q: "Accounts relating to properties and assets of the business concern are called _____ accounts.", options: { A: "Real", B: "Nominal", C: "Personal", D: "Representative" }, correct: "A" },
+      { q: "Accounts which relate to income and expenses, gains or losses of a business concern are known as _____ accounts.", options: { A: "Real", B: "Nominal", C: "Personal", D: "Tangible" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 4,
+    title: "Journal",
+    questions: [
+      { q: "_____ is called a book of original entry or book of primary entry.", options: { A: "A ledger", B: "A trial balance", C: "A journal", D: "A balance sheet" }, correct: "C" },
+      { q: "The process of recording the transaction in the journal is called:", options: { A: "Posting", B: "Journalizing", C: "Balancing", D: "Summarizing" }, correct: "B" },
+      { q: "_____ is a book in which an accounting transaction is written in accounting term.", options: { A: "A ledger", B: "A journal", C: "A cash book", D: "A pass book" }, correct: "B" },
+      { q: "L.F means:", options: { A: "Ledger Folio", B: "Loose Folio", C: "Ledger Format", D: "Line Format" }, correct: "A" },
+      { q: "Goodwill is a _____ Account.", options: { A: "Personal", B: "Nominal", C: "Real", D: "Representative" }, correct: "C" },
+      { q: "Accounts that are not personal are called _____ accounts.", options: { A: "Real", B: "Nominal", C: "Impersonal", D: "Tangible" }, correct: "C" }
+    ]
+  },
+  {
+    chapterNumber: 5,
+    title: "Ledger",
+    questions: [
+      { q: "_____ is also called book of secondary entry.", options: { A: "Journal", B: "Ledger", C: "Trial balance", D: "Cash book" }, correct: "B" },
+      { q: "J.F means:", options: { A: "Journal Folio", B: "Journal Format", C: "Joint Folio", D: "Journal File" }, correct: "A" },
+      { q: "The book which contains all the set of accounts is called:", options: { A: "Journal", B: "Ledger", C: "Day book", D: "Cash book" }, correct: "B" },
+      { q: "The left hand side of an accounts is known as the _____ side.", options: { A: "Credit", B: "Debit", C: "Balance", D: "Total" }, correct: "B" },
+      { q: "The right hand side of an accounts is known as the _____ side.", options: { A: "Debit", B: "Credit", C: "Balance", D: "Total" }, correct: "B" },
+      { q: "The process of transferring the entries recorded in the journal or subsidiary books to the respective accounts opened in the ledger is called:", options: { A: "Journalizing", B: "Posting", C: "Balancing", D: "Tallying" }, correct: "B" },
+      { q: "The difference between the debit and credit totals of an account is known as the _____ of an account.", options: { A: "Balance", B: "Total", C: "Sum", D: "Difference" }, correct: "A" },
+      { q: "The excess of the debit total over the credit total is called the _____ balance.", options: { A: "Credit", B: "Debit", C: "Negative", D: "Positive" }, correct: "B" },
+      { q: "The excess of the credit total over the debit total is called the _____ balance.", options: { A: "Debit", B: "Credit", C: "Negative", D: "Positive" }, correct: "B" },
+      { q: "_____ is known as the principal book of account.", options: { A: "Journal", B: "Ledger", C: "Cash book", D: "Trial balance" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 6,
+    title: "Subsidiary Books",
+    questions: [
+      { q: "Separate or special books that are maintained to record a particular category of transactions are known as:", options: { A: "Ledger accounts", B: "Journal proper", C: "Subsidiary book", D: "Principal books" }, correct: "C" },
+      { q: "Subsidiary book is also known as:", options: { A: "Ledger", B: "Day book", C: "Pass book", D: "Account book" }, correct: "B" },
+      { q: "In the purchases book, _____ purchases of goods are only recorded.", options: { A: "Cash", B: "Credit", C: "Asset", D: "All" }, correct: "B" },
+      { q: "In case of purchases returns, we have to prepare a _____ note.", options: { A: "Credit", B: "Debit", C: "Return", D: "Cash" }, correct: "B" },
+      { q: "The document received by the trader from the supplier stating that the goods are supplied as per the order is called _____ invoice.", options: { A: "Outward", B: "Inward", C: "Debit", D: "Credit" }, correct: "B" },
+      { q: "A rebate offered by the supplier on the catalogue price is known as a _____ discount.", options: { A: "Cash", B: "Trade", C: "Quantity", D: "Seasonal" }, correct: "B" },
+      { q: "The book that is used to record the return of goods to the suppliers is called:", options: { A: "Returns inward book", B: "Returns outward/ purchases returns book", C: "Sales returns book", D: "Journal proper" }, correct: "B" },
+      { q: "A debit note is prepared by the:", options: { A: "Supplier", B: "Customer", C: "Bank", D: "Agent" }, correct: "B" },
+      { q: "A credit note is prepared by the:", options: { A: "Customer", B: "Supplier", C: "Bank", D: "Agent" }, correct: "B" },
+      { q: "In case of sales returns, we have to prepare a _____ note.", options: { A: "Debit", B: "Credit", C: "Return", D: "Cash" }, correct: "B" },
+      { q: "A sales book is also called a:", options: { A: "Sales day book or sales journal", B: "Sales return book", C: "Cash sales book", D: "Invoice book" }, correct: "A" },
+      { q: "In sales book, _____ sales of goods are only recorded.", options: { A: "Cash", B: "Credit", C: "Asset", D: "All" }, correct: "B" },
+      { q: "Sales returns book is also called a _____ book.", options: { A: "Returns outward", B: "Returns inward", C: "Debit note", D: "Credit note" }, correct: "B" },
+      { q: "Purchase returns book is also called a _____ book.", options: { A: "Returns inward", B: "Returns outward", C: "Debit note", D: "Credit note" }, correct: "B" },
+      { q: "Cash purchases should be recorded in the _____ book.", options: { A: "Purchases", B: "Cash", C: "Journal proper", D: "Petty cash" }, correct: "B" },
+      { q: "Cash sales should be recorded in the _____ book.", options: { A: "Sales", B: "Cash", C: "Journal proper", D: "Petty cash" }, correct: "B" },
+      { q: "The periodical total of the purchases book should be _____ to the purchases account in the ledger.", options: { A: "Credited", B: "Debited", C: "Ignored", D: "Balanced" }, correct: "B" },
+      { q: "The periodical total of the sales book should be _____ to the sales account in the ledger.", options: { A: "Debited", B: "Credited", C: "Ignored", D: "Balanced" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 7,
+    title: "Journal Proper",
+    questions: [
+      { q: "Journal proper is also known as:", options: { A: "Cash journal", B: "Sales journal", C: "Journal residual or general journal", D: "Subsidiary journal" }, correct: "C" },
+      { q: "_____ is the eighth subsidiary book.", options: { A: "Cash book", B: "Journal proper", C: "Sales book", D: "Purchases return book" }, correct: "B" },
+      { q: "Asset purchased on credit should be recorded in:", options: { A: "Purchases book", B: "Cash book", C: "Journal proper", D: "Sales book" }, correct: "C" },
+      { q: "The asset sold on credit should be recorded in the:", options: { A: "Sales book", B: "Cash book", C: "Journal proper", D: "Purchases book" }, correct: "C" },
+      { q: "In an opening entry, the difference between the debit side and the credit side will be transferred to _____ account.", options: { A: "Capital", B: "Cash", C: "Bank", D: "Suspense" }, correct: "A" },
+      { q: "All the transactions that cannot be recorded in the other seven subsidiary books are recorded in the:", options: { A: "Cash book", B: "Ledger", C: "Journal proper", D: "Trial balance" }, correct: "C" },
+      { q: "In the opening entry total assets - total liabilities = _____.", options: { A: "Profit", B: "Capital", C: "Loss", D: "Drawings" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 8,
+    title: "Cash Book",
+    questions: [
+      { q: "_____ is the 'book of prime entry' or book of original entry.", options: { A: "Ledger", B: "Cash book", C: "Trial balance", D: "Balance sheet" }, correct: "B" },
+      { q: "_____ book plays a dual role as a journal as well as a ledger.", options: { A: "Sales", B: "Purchases", C: "Cash", D: "Journal proper" }, correct: "C" },
+      { q: "In the cash book, cash receipts are recorded on the _____ side.", options: { A: "Credit", B: "Debit", C: "Asset", D: "Liability" }, correct: "B" },
+      { q: "In the cash book, cash payments are recorded on the _____ side.", options: { A: "Debit", B: "Credit", C: "Asset", D: "Liability" }, correct: "B" },
+      { q: "A single-column cash book is also known as a:", options: { A: "Simple cash book", B: "Petty cash book", C: "Double column cash book", D: "Journal" }, correct: "A" },
+      { q: "A double-column cash book is also known as a _____ cash book.", options: { A: "Simple", B: "Two column", C: "Triple column", D: "Petty" }, correct: "B" },
+      { q: "_____ is an incentive given by the creditor to the debtor for prompt payment.", options: { A: "Interest", B: "Commission", C: "Discount", D: "Dividend" }, correct: "C" },
+      { q: "The discount given by the seller to the buyer is known as the _____ discount.", options: { A: "Cash", B: "Trade", C: "Quantity", D: "Special" }, correct: "B" },
+      { q: "_____ should not be recorded in the books of accounts.", options: { A: "Cash discount", B: "Trade discount", C: "Bad debts", D: "Depreciation" }, correct: "B" },
+      { q: "Discount given for prompt and early payment is called a _____ discount.", options: { A: "Trade", B: "Cash", C: "Quantity", D: "Seasonal" }, correct: "B" },
+      { q: "The discount allowed is shown on the _____ side of the cash book.", options: { A: "Credit", B: "Debit", C: "Asset", D: "Liability" }, correct: "B" },
+      { q: "The discount received is shown on the _____ side of the cash book.", options: { A: "Debit", B: "Credit", C: "Asset", D: "Liability" }, correct: "B" },
+      { q: "Opening bank balance (overdraft) should be recorded on the _____ column in the triple column cash book.", options: { A: "Debit side", B: "Credit side", C: "Discount", D: "Cash" }, correct: "B" },
+      { q: "An entry that appears on the both sides of the three column cash book is called:", options: { A: "Journal entry", B: "Ledger entry", C: "Contra entry", D: "Opening entry" }, correct: "C" },
+      { q: "Sales through credit cards or debit cards are equivalent to:", options: { A: "Credit sales", B: "Cash sales", C: "Bad debts", D: "Sales returns" }, correct: "B" },
+      { q: "The cash book which is maintained to record all petty (small) expenses is called:", options: { A: "Simple cash book", B: "Two column cash book", C: "Petty cash book", D: "Three column cash book" }, correct: "C" },
+      { q: "The petty cash book is maintained by a:", options: { A: "Chief cashier", B: "Petty cashier", C: "Manager", D: "Clerk" }, correct: "B" },
+      { q: "The system in which an estimated amount for petty expenses is determined and handed over in advance to the petty cashier is called the:", options: { A: "Accrual system", B: "Imprest system", C: "Advance system", D: "Cash system" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 9,
+    title: "Bank Reconciliation Statement",
+    questions: [
+      { q: "A passbook is a copy of a _____ as it appears in the ledger of the bank.", options: { A: "Bank's account", B: "Customer Account", C: "Cash account", D: "Suspense account" }, correct: "B" },
+      { q: "When money is withdrawn from the bank, the bank _____ the account of the customer.", options: { A: "Credits", B: "Debits", C: "Balances", D: "Closes" }, correct: "B" },
+      { q: "Normally, the cash book shows debit balance, while passbook shows a _____ balance.", options: { A: "Debit", B: "Credit", C: "Zero", D: "Negative" }, correct: "B" },
+      { q: "Favourable balance as per the cash book mean _____ balance in the bank column of the cash book.", options: { A: "Credit", B: "Debit", C: "Overdraft", D: "Zero" }, correct: "B" },
+      { q: "If the cash book balance is taken as a starting point the items which makes the cash book balance smaller than the passbook must be _____ for reconciliation.", options: { A: "Deducted", B: "Added", C: "Ignored", D: "Divided" }, correct: "B" },
+      { q: "If the passbook shows a favourable balance and if it taken as the starting point for a bank reconciliation statement, then cheques issued but not presented for payment should be _____ to find out the cash balance.", options: { A: "Added", B: "Deducted", C: "Ignored", D: "Multiplied" }, correct: "B" },
+      { q: "When the cheques are not presented for payments, a favourable balance as per the cash book is _____ than that of the pass book.", options: { A: "More", B: "Less", C: "Equal", D: "Zero" }, correct: "B" },
+      { q: "If the overdraft as per the passbook is taken as a starting point, the cheques issued but not presented are to be _____ to the bank reconciliation statement.", options: { A: "Deducted", B: "Added", C: "Ignored", D: "Multiplied" }, correct: "B" },
+      { q: "When the passbook balance is taken as the starting point items which makes the passbook balance _____ than the balance in the cash book must be deducted for reconciliation.", options: { A: "Lower", B: "Higher", C: "Equal", D: "Zero" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 10,
+    title: "Trial Balance",
+    questions: [
+      { q: "The statement which is prepared to verify the arithmetical accuracy of ledger accounts is called:", options: { A: "Balance sheet", B: "Trading account", C: "Trial Balance", D: "Profit and loss account" }, correct: "C" },
+      { q: "All the assets should be recorded on the _____ side of the trial balance.", options: { A: "Credit", B: "Debit", C: "Liability", D: "Income" }, correct: "B" },
+      { q: "Capital should be recorded on the _____ side of the trial balance.", options: { A: "Debit", B: "Credit", C: "Asset", D: "Expense" }, correct: "B" },
+      { q: "All expenses and losses will appear on the _____ side of trial balance.", options: { A: "Credit", B: "Debit", C: "Asset", D: "Liability" }, correct: "B" },
+      { q: "All incomes and gains will appear on the _____ side of the trial balance.", options: { A: "Debit", B: "Credit", C: "Asset", D: "Expense" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 11,
+    title: "Final Accounts",
+    questions: [
+      { q: "The statement prepared at the end of an accounting period are:", options: { A: "Journal entries", B: "Final Accounts", C: "Trial balances", D: "Ledger accounts" }, correct: "B" },
+      { q: "The expenditure incurred for acquiring fixed assets is called:", options: { A: "Revenue expenditure", B: "Deferred revenue expenditure", C: "Capital expenditure", D: "Operating expenditure" }, correct: "C" },
+      { q: "The capital expenditure has to be shown on the _____ side of the balance sheet.", options: { A: "Liabilities", B: "Assets", C: "Income", D: "Expense" }, correct: "B" },
+      { q: "The expenditure incurred in the normal course of business activities is called:", options: { A: "Capital expenditure", B: "Revenue expenditures", C: "Deferred capital expenditure", D: "Non-operating expenditure" }, correct: "B" },
+      { q: "An income which arises during the normal course or regular business activities is called:", options: { A: "Capital income", B: "Revenue income", C: "Deferred income", D: "Abnormal income" }, correct: "B" },
+      { q: "_____ account is prepared to know the gross profit/gross loss.", options: { A: "Profit and loss", B: "Trading", C: "Balance sheet", D: "Capital" }, correct: "B" },
+      { q: "All direct expenses should be debited to the _____ account.", options: { A: "Profit and loss", B: "Trading", C: "Capital", D: "Asset" }, correct: "B" },
+      { q: "Cash purchases + credit purchases - Purchases returns = _____.", options: { A: "Gross purchases", B: "Net purchases", C: "Total sales", D: "Cost of goods sold" }, correct: "B" },
+      { q: "The opening stock should appear on the _____ side of the trading accounts.", options: { A: "Credit", B: "Debit", C: "Asset", D: "Liability" }, correct: "B" },
+      { q: "Cash sales + credit sales - sales returns = _____.", options: { A: "Gross sales", B: "Net sales", C: "Total purchases", D: "Cost of goods sold" }, correct: "B" },
+      { q: "The unsold stock on the last day of the accounting period is called:", options: { A: "Opening stock", B: "Closing stock", C: "Dead stock", D: "Live stock" }, correct: "B" },
+      { q: "The account which is prepared to know the net profit or net loss is called:", options: { A: "Trading account", B: "Profit and loss account", C: "Balance sheet", D: "Capital account" }, correct: "B" },
+      { q: "All the indirect expenses will be debited to the _____ account.", options: { A: "Trading", B: "Profit and loss", C: "Capital", D: "Balance sheet" }, correct: "B" },
+      { q: "The statement that is prepared to know the financial position of business is called:", options: { A: "Trading account", B: "Profit and loss account", C: "Balance sheet", D: "Trial balance" }, correct: "C" },
+      { q: "The left hand side of the balance sheet is called the _____ side.", options: { A: "Assets", B: "Liability", C: "Debit", D: "Credit" }, correct: "B" },
+      { q: "The right hand side of the balance sheet is called the _____ side.", options: { A: "Liability", B: "Assets", C: "Debit", D: "Credit" }, correct: "B" },
+      { q: "The decline in the value of fixed asset is called:", options: { A: "Appreciation", B: "Depreciation", C: "Amortization", D: "Depletion" }, correct: "B" },
+      { q: "The irrecoverable debts are known as:", options: { A: "Good debts", B: "Bad debts", C: "Doubtful debts", D: "Provision for debts" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 12,
+    title: "Final Accounts with Adjustments",
+    questions: [
+      { q: "Closing stock given in the trial balance should be recorded only on the _____ of balance sheet.", options: { A: "Liabilities side", B: "Assets side", C: "Debit side", D: "Credit side" }, correct: "B" },
+      { q: "Outstanding salaries given in the trial balance should be recorded on the _____ of balance sheet.", options: { A: "Assets side", B: "Liabilities side", C: "Debit side", D: "Credit side" }, correct: "B" },
+      { q: "The decline in the value of fixed asset is called:", options: { A: "Appreciation", B: "Depreciation", C: "Amortization", D: "Depletion" }, correct: "B" },
+      { q: "Bad debts given in the trial balance should be recorded on the _____ of the profit and loss account.", options: { A: "Credit side", B: "Debit side", C: "Assets side", D: "Liabilities side" }, correct: "B" },
+      { q: "Bad debts given in the adjustments should be recorded on debt side of the profit and loss account and immediately deducted from the _____ on the Asset side.", options: { A: "Creditors", B: "Debtors", C: "Bills receivable", D: "Cash" }, correct: "B" },
+      { q: "Interest on capital given in the trial balance should be recorded on the debit side of the:", options: { A: "Trading account", B: "Profit and loss account", C: "Balance sheet", D: "Capital account" }, correct: "B" },
+      { q: "Interest on drawings given in the trial balance should be recorded on the credit side of the:", options: { A: "Trading account", B: "Profit and loss account", C: "Balance sheet", D: "Capital account" }, correct: "B" }
+    ]
+  }
+];
+
+/* STATE */
+let currentChapterData = null;
+let currentIndex=0, score=0;
+let selectedChoice=null, answered={};
+let voice=null;
+
+/* VOICE (BULLETPROOF FEMALE + BUG FIX + BLANK FILTER) */
+function initVoice(){
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) return;
+
+  // Try to find a clear female/Indian English voice
+  voice = voices.find(v => 
+    v.name.includes("Neerja") || 
+    v.name.includes("Heera") || 
+    v.name.includes("Veena") || 
+    v.name.includes("Google UK English Female") || 
+    v.name.includes("Zira") || 
+    v.name.includes("female")
+  );
+
+  // Fallback if none of the above are found
+  if (!voice) {
+    voice = voices.find(v => v.lang.startsWith("en")) || voices[0];
+  }
+}
+
+// Ensure voices load properly on all browsers
+window.speechSynthesis.onvoiceschanged = initVoice;
+
+function stopSound(){
+  window.speechSynthesis.cancel();
+}
+
+function speak(text){
+  stopSound();
+  
+  if (!voice) initVoice();
+
+  // Replaces underscores with the word "blank"
+  const cleanText = text.replace(/_+/g, " blank ");
+
+  const u = new SpeechSynthesisUtterance(cleanText);
+  
+  // FORCE the language to Indian English (defaults to a clear female voice on most devices)
+  u.lang = 'en-IN';
+  
+  if (voice) u.voice = voice;
+
+  u.rate = 1.0; 
+  u.pitch = 1.0;
+  u.volume = 1.0;
+
+  // CHROME BUG FIX: Prevents the browser from silently deleting the audio before playing
+  window.speechUtteranceChunk = u;
+
+  window.speechSynthesis.speak(u);
+}
+/* DYNAMIC MENU RENDER */
+function renderMenu() {
+  const grid = document.getElementById("menuGrid");
+  grid.innerHTML = "";
+  
+  chaptersData.forEach((ch, index) => {
+    const card = document.createElement("div");
+    card.className = "menu-card";
+    card.onclick = () => startChapter(index);
+    
+    card.innerHTML = `
+      <div>Chapter ${ch.chapterNumber}: ${ch.title}</div>
+      <span class="q-count">${ch.questions.length} Qs</span>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+/* CHAPTER LOGIC */
+function startChapter(index){
+  currentChapterData = chaptersData[index];
+  
+  document.getElementById("homeScreen").classList.add("hidden");
+  document.getElementById("quizScreen").classList.remove("hidden");
+
+  document.getElementById("chapterTitle").innerText = `Chapter ${currentChapterData.chapterNumber}: ${currentChapterData.title}`;
+
+  currentIndex = 0;
+  score = 0;
+  answered = {};
+  loadQuestion();
+}
+
+function loadQuestion(){
+  selectedChoice = null;
+  const q = currentChapterData.questions[currentIndex];
+  const totalQs = currentChapterData.questions.length;
+
+  document.getElementById("qText").innerText = q.q;
+  document.getElementById("progressLabel").innerText = `Question ${currentIndex+1} / ${totalQs}`;
+
+  document.getElementById("optionsBox").innerHTML =
+    ["A","B","C","D"].map((l,i)=>`
+      <div class="option" id="opt-${l}" onclick="selectOption('${l}')">
+        <strong>${i+1}.</strong> ${q.options[l]}
+      </div>
+    `).join("");
+
+  repeatQuestion();
+}
+
+function repeatQuestion(){
+  const q = currentChapterData.questions[currentIndex];
+  speak(
+    `Question ${currentIndex+1}. ${q.q}.
+     Option 1. ${q.options.A}.
+     Option 2. ${q.options.B}.
+     Option 3. ${q.options.C}.
+     Option 4. ${q.options.D}.`
+  );
+}
+
+function selectOption(letter){
+  if (answered[currentIndex]) return;
+
+  selectedChoice = letter;
+  document.querySelectorAll(".option").forEach(o=>o.classList.remove("selected"));
+  document.getElementById(`opt-${letter}`).classList.add("selected");
+
+  speak(`You selected ${currentChapterData.questions[currentIndex].options[letter]}. Press Enter to confirm.`);
+}
+
+function confirmAnswer(){
+  if (!selectedChoice || answered[currentIndex]) return;
+
+  const q = currentChapterData.questions[currentIndex];
+  const correct = q.correct;
+  answered[currentIndex] = true;
+
+  if (selectedChoice === correct){
+    score++;
+    document.getElementById(`opt-${selectedChoice}`).classList.add("correct");
+    speak(`Correct. ${q.options[correct]}`);
+  } else {
+    document.getElementById(`opt-${selectedChoice}`).classList.add("wrong");
+    document.getElementById(`opt-${correct}`).classList.add("correct");
+    speak(`Incorrect. The correct answer is ${q.options[correct]}`);
+  }
+}
+
+function nextQuestion(){
+  const totalQs = currentChapterData.questions.length;
+  if (currentIndex < totalQs - 1){
+    currentIndex++;
+    loadQuestion();
+  } else {
+    speak(`Chapter completed. Your score is ${score} out of ${totalQs}.`);
+  }
+}
+
+function prevQuestion(){
+  if (currentIndex > 0){
+    currentIndex--;
+    loadQuestion();
+  }
+}
+
+function goHome(){
+  stopSound();
+  location.reload();
+}
+/* KEYBOARD CONTROLS FOR VISUALLY IMPAIRED STUDENTS */
+window.addEventListener("keydown", e => {
+  
+  // 1. Prevent default browser behavior 
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight", "Enter"].indexOf(e.key) > -1) {
+      e.preventDefault();
+  }
+
+  // 2. Selection Keys
+  if (e.key === "1") selectOption("A");
+  if (e.key === "2") selectOption("B");
+  if (e.key === "3") selectOption("C");
+  if (e.key === "4") selectOption("D");
+  
+  // 3. Confirm Key (Will ONLY confirm, never advance)
+  if (e.key === "Enter") confirmAnswer(); 
+  
+  // 4. Navigation Keys
+  if (e.key === "ArrowRight") nextQuestion(); // Move forward
+  if (e.key === "ArrowLeft") prevQuestion();  // Move backward
+  
+  // 5. Audio & Home Controls
+  if (e.key === "ArrowUp") repeatQuestion();  // Hear the question using Up Arrow
+  if (e.key === "ArrowDown") stopSound();     // Immediately mute the audio
+  if (e.key.toLowerCase() === "r") repeatQuestion(); // Hear the question using 'R' key
+  if (e.key.toLowerCase() === "h") goHome();         // Return to Home menu using 'H' key
+});
+window.onload = () => {
+  initVoice();
+  renderMenu();
+};
+</script>
+
+</body>
+</html>

@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Civics Master – Voice Based Chapters</title>
+
+<style>
+:root {
+  --primary:#2c3e50;
+  --accent:#8e44ad;
+  --success:#27ae60;
+  --error:#e74c3c;
+  --nav:#3498db;
+  --bg:#f4f7f6;
+}
+
+body {
+  margin:0;
+  padding:20px;
+  background:var(--bg);
+  font-family:Segoe UI, sans-serif;
+  display:flex;
+  justify-content:center;
+}
+
+.container {
+  width:100%;
+  max-width:820px;
+  background:#fff;
+  padding:30px;
+  border-radius:15px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.1);
+}
+
+.menu-grid {
+  display:grid;
+  grid-template-columns: 1fr; /* Single column for longer titles */
+  gap:15px;
+  margin-top:30px;
+}
+
+.menu-card {
+  background:var(--primary);
+  color:#fff;
+  padding:20px;
+  border-radius:10px;
+  font-size:1.2em;
+  font-weight:bold;
+  text-align:left;
+  cursor:pointer;
+  transition: background 0.3s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.menu-card span.q-count {
+  background: rgba(255,255,255,0.2);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.8em;
+}
+
+.menu-card:hover {
+  background:var(--accent);
+}
+
+.nav-info {
+  display:flex;
+  justify-content:space-between;
+  font-weight:bold;
+  color:#7f8c8d;
+  border-bottom:1px solid #eee;
+  padding-bottom:10px;
+  margin-bottom:20px;
+  font-size: 1.1em;
+}
+
+.question-text {
+  font-size:1.4em;
+  text-align:center;
+  color:var(--primary);
+  margin-bottom:25px;
+  min-height:3em;
+}
+
+.option {
+  border:2px solid #eee;
+  padding:15px;
+  border-radius:10px;
+  font-size:1.2em;
+  cursor:pointer;
+  margin-bottom:10px;
+}
+
+.option.selected {
+  background:#f4f0ff;
+  border-color:var(--accent);
+}
+
+.correct {
+  background:#d4edda !important;
+  border-color:var(--success) !important;
+}
+
+.wrong {
+  background:#f8d7da !important;
+  border-color:var(--error) !important;
+}
+
+.controls-row {
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin-top:15px;
+  flex-wrap:wrap;
+}
+
+.btn {
+  padding:12px 20px;
+  border:none;
+  border-radius:25px;
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.btn-nav { background:var(--nav); }
+.btn-confirm { background:var(--success); }
+.btn-repeat { background:var(--accent); }
+.btn-stop { background:#c0392b; }
+.btn-home { background:#7f8c8d; }
+
+.hidden { display:none; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div id="homeScreen">
+  <h1 style="text-align:center;color:var(--primary)">Civics Chapter Tests</h1>
+  <p style="text-align:center;color:#666">Select a chapter to begin</p>
+
+  <div class="menu-grid" id="menuGrid">
+    </div>
+</div>
+
+<div id="quizScreen" class="hidden">
+
+  <div class="nav-info">
+    <span id="chapterTitle">Chapter</span>
+    <span id="progressLabel">Question 1/X</span>
+  </div>
+
+  <div class="question-text" id="qText"></div>
+  <div id="optionsBox"></div>
+
+  <div class="controls-row">
+    <button class="btn btn-nav" onclick="prevQuestion()">← Prev</button>
+    <button class="btn btn-confirm" onclick="confirmAnswer()">Confirm</button>
+    <button class="btn btn-nav" onclick="nextQuestion()">Next →</button>
+  </div>
+
+  <div class="controls-row">
+    <button class="btn btn-repeat" onclick="repeatQuestion()">🔊 Repeat</button>
+    <button class="btn btn-stop" onclick="stopSound()">🛑 Stop</button>
+    <button class="btn btn-home" onclick="goHome()">🏠 Home</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+/* ==========================
+   🔴 CIVICS DYNAMIC DATA
+   ========================== */
+const chaptersData = [
+  {
+    chapterNumber: 1,
+    title: "Scope and Significance of Political Science",
+    questions: [
+      { q: "Name four ancient Greek city-states.", options: { A: "Aegina, Argos, Athens, Corinth", B: "Rome, Paris, London, Madrid", C: "Sparta, Troy, Naples, Venice", D: "Uruk, Babylon, Sumer, Akkad" }, correct: "A" },
+      { q: "What is the origin of the term 'Civics'?", options: { A: "Greek words Demos and Kratos", B: "Latin words Civitas and Civis", C: "French words Liber and Fraternite", D: "Teutonic root Lag" }, correct: "B" },
+      { q: "How does Political Science teach the qualities of good Citizenship?", options: { A: "By focusing only on economic wealth", B: "By avoiding state intervention", C: "It inculcates qualities such as obedience, social service, and self-sacrifice", D: "By teaching natural sciences" }, correct: "C" },
+      { q: "Which of the following is not considered an ancient Greek city-state?", options: { A: "Aegina", B: "Athens", C: "U.S.A.", D: "Corinth" }, correct: "C" },
+      { q: "Who described the ancient Greek city-state as city-communities?", options: { A: "Aristotle", B: "Plato", C: "Hillman", D: "Prof. Catlin" }, correct: "D" },
+      { q: "The term politics is derived from Greek words which mean?", options: { A: "State and Nation", B: "Power and Authority", C: "City and Citizen", D: "Law and Order" }, correct: "C" },
+      { q: "Who defined political science as the science of 'gets what, when, and why'?", options: { A: "David Easton", B: "Hillman", C: "Anderson", D: "Charles Lindblom" }, correct: "B" },
+      { q: "Who understood political science as the authoritative allocation of values?", options: { A: "David Easton", B: "Aristotle", C: "H.J. Laski", D: "Prof. Catlin" }, correct: "A" },
+      { q: "Modern political scientists like Anderson, David Easton, and Charles Lindblom argued that Political Science is a:", options: { A: "Natural Science", B: "Historical Science", C: "Policy Science", D: "Exact Science" }, correct: "C" },
+      { q: "The Father of political science is:", options: { A: "Socrates", B: "Plato", C: "Machiavelli", D: "Aristotle" }, correct: "D" },
+      { q: "Who worked hard for the popularity of political science as a subject of study in developing nations?", options: { A: "H.J. Laski", B: "Woodrow Wilson", C: "David Easton", D: "Lord Bryce" }, correct: "A" },
+      { q: "Where did political science originate?", options: { A: "Ancient Rome", B: "Medieval Europe", C: "Ancient Greek City-states", D: "Ancient India" }, correct: "C" },
+      { q: "Who said man is a social animal?", options: { A: "Plato", B: "Socrates", C: "Aristotle", D: "Machiavelli" }, correct: "C" },
+      { q: "Who recognised political science as a prominent academic subject?", options: { A: "Harvard University", B: "London School of Economics", C: "Oxford University", D: "Cambridge University" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 2,
+    title: "State",
+    questions: [
+      { q: "Write any one definition of the state.", options: { A: "A community of families", B: "A group united for specific purposes", C: "State is a politically organized people of a definite territory", D: "An abstract moral concept" }, correct: "C" },
+      { q: "Mention the other elements of the state.", options: { A: "Population, Territory, Government, Sovereignty", B: "International recognition, Permanence, General Obedience, Popular Will", C: "Liberty, Equality, Fraternity", D: "Religion, Culture, Language" }, correct: "B" },
+      { q: "What are the primary theories of the origin of the state?", options: { A: "Divine Origin, Force, Patriarchal, Matriarchal", B: "Evolutionary, Historical, Social Contract", C: "Capitalist, Socialist, Communist", D: "Natural, Artificial, Spiritual" }, correct: "A" },
+      { q: "What do you know about 'association'?", options: { A: "A sovereign political entity", B: "A geographical territory", C: "A group of people united for a specific purpose or a limited number of purposes", D: "A legal code of conduct" }, correct: "C" },
+      { q: "What is international recognition?", options: { A: "Winning global awards", B: "Recognition of the sovereign status of a state by other states, often via UNO", C: "Trading internationally", D: "Adopting international languages" }, correct: "B" },
+      { q: "Mention thinkers who endorsed Social Contract Theory.", options: { A: "Plato and Aristotle", B: "Machiavelli and Bodin", C: "Hobbes, Locke and Rousseau", D: "Marx and Engels" }, correct: "C" },
+      { q: "What according to Willoughby is an important element of the state?", options: { A: "Government", B: "Sovereignty", C: "Popular will", D: "Permanence" }, correct: "C" },
+      { q: "Identify the essential element of the state.", options: { A: "International recognition", B: "Government", C: "Permanence", D: "Popular will" }, correct: "B" },
+      { q: "Identify the other element of the state.", options: { A: "Population", B: "Territory", C: "Sovereignty", D: "General obedience" }, correct: "D" },
+      { q: "The Prince was written by:", options: { A: "Machiavelli", B: "MacIver", C: "Aristotle", D: "Bluntschli" }, correct: "A" },
+      { q: "Which element is called the 'brain and heart of the state'?", options: { A: "Government", B: "Population", C: "Sovereignty", D: "Territory" }, correct: "A" },
+      { q: "The origin of modern states was in:", options: { A: "Ancient India", B: "Ancient Greece and Medieval Europe", C: "Modern America", D: "Roman Empire" }, correct: "B" },
+      { q: "According to Plato, the size of the population of the 'polis' should not comprise more than:", options: { A: "1000", B: "5040", C: "10000", D: "50000" }, correct: "B" },
+      { q: "For every coastal state, its territorial waters extend into the sea up to a distance of:", options: { A: "10 nautical miles", B: "12 nautical miles", C: "15 nautical miles", D: "20 nautical miles" }, correct: "B" },
+      { q: "In the modern period which theory led to origin of modern national-system?", options: { A: "Social Contract Theory", B: "Theory of Natural Self Determination", C: "Force Theory", D: "Divine Theory" }, correct: "B" },
+      { q: "Who used the word 'La Stato' for the first time in the sense of 'state'?", options: { A: "Jean Bodin", B: "Aristotle", C: "Machiavelli", D: "Plato" }, correct: "C" },
+      { q: "At the end of sixteenth century, who referred to the state as 'republic'?", options: { A: "Machiavelli", B: "Jean Bodin", C: "MacIver", D: "Hobbes" }, correct: "B" },
+      { q: "Which element of the state distinguishes the state from other associations?", options: { A: "Population", B: "Government", C: "Territory", D: "Sovereignty" }, correct: "D" },
+      { q: "Who regarded the blood relationship (kinship) created society and society in turn led to the 'state'?", options: { A: "Aristotle", B: "MacIver", C: "Machiavelli", D: "Bluntschli" }, correct: "B" },
+      { q: "Who believed that good citizens make a good state?", options: { A: "Plato", B: "Aristotle", C: "Socrates", D: "Locke" }, correct: "B" },
+      { q: "Who considered that 'the state has a class structure'?", options: { A: "Socialists", B: "Capitalists", C: "Individualists", D: "Fascists" }, correct: "A" }
+    ]
+  },
+  {
+    chapterNumber: 3,
+    title: "Nationality and Nation",
+    questions: [
+      { q: "Cite any two countries that are two distinct nations even though they belong to the same race.", options: { A: "USA and Canada", B: "India and Pakistan", C: "Australia and Britain", D: "Germany and France" }, correct: "C" },
+      { q: "In which two countries does the sentiment of nationality prevail despite the existence of multiple languages?", options: { A: "Canada and India", B: "Britain and USA", C: "Japan and China", D: "France and Germany" }, correct: "A" },
+      { q: "What is national self-determination?", options: { A: "A theory for state capitalism", B: "Implies every nation should be organised as an independent political entity", C: "The right of individuals to vote", D: "A religious concept" }, correct: "B" },
+      { q: "Who wrote the book 'The international law'?", options: { A: "Clavo", B: "Lord Bryce", C: "Burgess", D: "Stephen Leacock" }, correct: "A" },
+      { q: "Identify the incorrect statement regarding nationality.", options: { A: "Nationality is a psychological feeling", B: "Nationality is always independent", C: "There can be nationality without a nation", D: "It is an unorganised feeling" }, correct: "B" },
+      { q: "Which of the following is an incorrect statement regarding the nation?", options: { A: "Nation is a political concept", B: "Nation is always a politically organised state", C: "Nation is always independent", D: "There can be a nation without nationality" }, correct: "D" },
+      { q: "The theory of one nation-one state became popular after the first world war. It was based on the principle of:", options: { A: "Socialism", B: "Imperialism", C: "National self-determination", D: "Divine Right" }, correct: "C" },
+      { q: "PLO stands for:", options: { A: "Public Law Organization", B: "Palestine Liberation Organisation", C: "People's Legal Office", D: "Political Liberty Organization" }, correct: "B" },
+      { q: "The term 'Nation' is derived from the Latin word 'Natio', which means:", options: { A: "State", B: "Power", C: "Born", D: "People" }, correct: "C" },
+      { q: "Who proposed the theory of National self-determination?", options: { A: "Abraham Lincoln", B: "Winston Churchill", C: "Woodrow Wilson", D: "F.D. Roosevelt" }, correct: "C" }
+    ]
+  },
+  {
+    chapterNumber: 4,
+    title: "Law",
+    questions: [
+      { q: "The term 'Law' is derived from the teutonic root 'Lag', which means:", options: { A: "To rule", B: "To lay, to set, or something fixed", C: "Justice", D: "To divide" }, correct: "B" },
+      { q: "What is natural law?", options: { A: "Law created by parliament", B: "Also known as divine law, gift of nature, not created by human agency", C: "Law governing businesses", D: "Law of the seas" }, correct: "B" },
+      { q: "Write about constitutional law.", options: { A: "It regulates administrative authorities", B: "It is unwritten and based on customs", C: "It is the supreme law of the State that determines the structure of the government", D: "It is created by city councils" }, correct: "C" },
+      { q: "What is administrative law?", options: { A: "Law regarding criminal offenses", B: "Law that regulates the administrative relations between authorities and people", C: "International trade law", D: "Law based on religion" }, correct: "B" },
+      { q: "Explain the rule of law.", options: { A: "A unique feature of the British Constitution where all are equal before law", B: "The rule of a single monarch", C: "Law based on military force", D: "Law strictly for the elites" }, correct: "A" }
+    ]
+  },
+  {
+    chapterNumber: 5,
+    title: "Liberty and Equality",
+    questions: [
+      { q: "Which equality implies provision of adequate conditions for the people in the political affairs of the state?", options: { A: "Social equality", B: "Economic equality", C: "Political equality", D: "Natural equality" }, correct: "C" },
+      { q: "Which equality implies freedom from all restraints and social customs?", options: { A: "Political equality", B: "Natural equality", C: "Social equality", D: "Legal equality" }, correct: "B" },
+      { q: "The definition 'liberty means absence of coercion' was given by?", options: { A: "J.S. Mill", B: "F.A. Hayek", C: "John Locke", D: "Rousseau" }, correct: "B" },
+      { q: "Who opined liberty is a constitutional freedom given to the individual to express his opinion frankly?", options: { A: "J.S. Mill", B: "Hobbes", C: "F.A. Hayek", D: "Aristotle" }, correct: "A" },
+      { q: "Identify the incorrect statement among the following essential features of equality.", options: { A: "Equality is not given by nature", B: "Equality is absolute", C: "Equality is essential for social justice", D: "Equality is closely connected with liberty" }, correct: "B" },
+      { q: "The term liberty is derived from the Latin word 'liber' which means:", options: { A: "Right to vote", B: "Equal laws", C: "Free from restrictions", D: "Brotherhood" }, correct: "C" },
+      { q: "Natural equality was mentioned in the social contract theory propounded by:", options: { A: "John Locke", B: "Thomas Hobbes", C: "Rousseau", D: "J.S. Mill" }, correct: "B" },
+      { q: "Equality denotes presence of equality of status and absence of class distinctions?", options: { A: "Economic equality", B: "Political equality", C: "Social equality", D: "Natural equality" }, correct: "C" },
+      { q: "Which equality is considered as the basis of social and political equalities?", options: { A: "Natural equality", B: "Economic equality", C: "Legal equality", D: "Moral equality" }, correct: "B" },
+      { q: "Who gave the slogan 'Give me liberty or give me death'?", options: { A: "George Washington", B: "Abraham Lincoln", C: "Thomas Jefferson", D: "Patrick Henry" }, correct: "D" },
+      { q: "Who stated 'equality does not mean identical treatment, it means equal treatment under equal conditions'?", options: { A: "Justice Patanjali Shastri", B: "B.R. Ambedkar", C: "Jawaharlal Nehru", D: "Mahatma Gandhi" }, correct: "A" }
+    ]
+  },
+  {
+    chapterNumber: 6,
+    title: "Rights and Responsibilities",
+    questions: [
+      { q: "When was Magna Carta issued?", options: { A: "1215 AD", B: "1688 AD", C: "1776 AD", D: "1789 AD" }, correct: "A" },
+      { q: "Who propounded the theory of natural rights?", options: { A: "Thomas Hobbes", B: "John Locke", C: "Rousseau", D: "Bentham" }, correct: "B" },
+      { q: "Who propounded the theory of individualism?", options: { A: "Jeremy Bentham", B: "Karl Marx", C: "J.S. Mill", D: "Adam Smith" }, correct: "C" },
+      { q: "Who propounded the theory of Utilitarianism?", options: { A: "John Locke", B: "J.S. Mill", C: "Jeremy Bentham", D: "Rousseau" }, correct: "C" },
+      { q: "Right to vote is the best example of which rights?", options: { A: "Economic rights", B: "Civil rights", C: "Political rights", D: "Natural rights" }, correct: "C" },
+      { q: "Right to Adequate wages is best example of:", options: { A: "Political rights", B: "Civil rights", C: "Economic rights", D: "Moral rights" }, correct: "C" },
+      { q: "The Declaration of Universal Human Rights was adopted on:", options: { A: "1945 October 24", B: "1947 August 15", C: "1948 December 10", D: "1950 January 26" }, correct: "C" },
+      { q: "Helping the needy and the sick is regarded as an example of:", options: { A: "Legal responsibility", B: "Moral responsibility", C: "Political responsibility", D: "Economic responsibility" }, correct: "B" },
+      { q: "Who defined the term right as a claim recognized by the society and enforced by the state?", options: { A: "Laski", B: "Bosanquet", C: "T.H. Green", D: "Aristotle" }, correct: "B" },
+      { q: "Violation of which type of rights is not considered as a crime?", options: { A: "Legal rights", B: "Fundamental rights", C: "Moral rights", D: "Civil rights" }, correct: "C" },
+      { q: "What are the basic human rights mentioned in the Constitution?", options: { A: "Moral rights", B: "Natural rights", C: "Fundamental rights", D: "Directive principles" }, correct: "C" },
+      { q: "Who gave the statement 'man is born free, but everywhere he is in chains'?", options: { A: "Voltaire", B: "Montesquieu", C: "John Locke", D: "Rousseau" }, correct: "D" }
+    ]
+  },
+  {
+    chapterNumber: 7,
+    title: "Justice",
+    questions: [
+      { q: "Who defined justice as 'justice means to help friends and harm enemies'?", options: { A: "Socrates", B: "Plato", C: "Polemarchus", D: "Aristotle" }, correct: "C" },
+      { q: "According to the Numerical concept of justice, who stated 'Everyone counts as one, no one counts for more than one'?", options: { A: "Jeremy Bentham", B: "J.S. Mill", C: "John Rawls", D: "Aristotle" }, correct: "A" },
+      { q: "Who regarded Distributed justice as the most powerful instrument against revolutions?", options: { A: "Plato", B: "Aristotle", C: "Machiavelli", D: "Karl Marx" }, correct: "B" },
+      { q: "John Rawls advocated the 'Theory of social justice', commonly known as:", options: { A: "Justice as Equality", B: "Justice as Fairness", C: "Justice as Utility", D: "Justice as Liberty" }, correct: "B" },
+      { q: "The word 'justice' is derived from the Latin word 'justitia' which means:", options: { A: "To rule", B: "To divide", C: "To bind", D: "To speak" }, correct: "C" },
+      { q: "Aristotle stated 'if flutes are to be distributed, they should be distributed only among those who have the capacity for playing'. This concept is known as:", options: { A: "Numerical concept", B: "Geometrical concept", C: "Legal concept", D: "Moral concept" }, correct: "B" },
+      { q: "Who advocated distributive justice and corrective justice?", options: { A: "Plato", B: "Aristotle", C: "Socrates", D: "Cicero" }, correct: "B" },
+      { q: "Who propounded that nature, ethics, religion, economic elements are the four sources of justice?", options: { A: "John Rawls", B: "Jeremy Bentham", C: "Ernest Barker", D: "J.S. Mill" }, correct: "C" }
+    ]
+  },
+  {
+    chapterNumber: 8,
+    title: "Citizenship",
+    questions: [
+      { q: "Identify the correct option regarding Indian citizenship:", options: { A: "Dual citizenship", B: "Multiple citizenship", C: "Single citizenship", D: "State citizenship" }, correct: "C" },
+      { q: "Identify the condition under which a citizen may lose their citizenship:", options: { A: "Voting", B: "Treason", C: "Paying taxes", D: "Traveling abroad" }, correct: "B" },
+      { q: "Identify the correct method for acquiring 'natural citizenship':", options: { A: "Naturalization", B: "Registration", C: "Jus Soli", D: "Incorporation of territory" }, correct: "C" },
+      { q: "Which part of the Indian Constitution deals with citizenship?", options: { A: "Part-1", B: "Part-2", C: "Part-3", D: "Part-4" }, correct: "B" },
+      { q: "Identify the incorrect option among the hindrances to the growth of good citizenship:", options: { A: "Ignorance", B: "Poverty", C: "Honest exercise of franchise", D: "Selfishness" }, correct: "C" },
+      { q: "Jus soli means:", options: { A: "Blood relationship", B: "Legal registration", C: "Land or place of Birth", D: "Marriage" }, correct: "C" },
+      { q: "Jus sanguinis means:", options: { A: "Place of birth", B: "Kinship or blood relationship", C: "Extended stay", D: "Government employment" }, correct: "B" },
+      { q: "Dual citizenship means possessing citizenship in:", options: { A: "Two states at the same time", B: "Two cities", C: "A state and a municipality", D: "None of the above" }, correct: "A" },
+      { q: "Who is not entitled to criticise the policies and programmes of the government?", options: { A: "Citizen", B: "Voter", C: "Alien", D: "Resident" }, correct: "C" },
+      { q: "What type of method grants citizenship without a specific application or request to the authorities?", options: { A: "Naturalized citizenship", B: "Honorary citizenship", C: "Acquired citizenship", D: "Natural citizenship" }, correct: "D" },
+      { q: "Who cited conscience, intelligence, and self-control as the qualities of a good citizen?", options: { A: "Lord Bryce", B: "Aristotle", C: "J.S. Mill", D: "Plato" }, correct: "A" }
+    ]
+  },
+  {
+    chapterNumber: 9,
+    title: "Democracy",
+    questions: [
+      { q: "Who considered democracy as a sort of 'Mob rule'?", options: { A: "Plato", B: "Socrates", C: "Aristotle", D: "Machiavelli" }, correct: "C" },
+      { q: "Who defined democracy as 'a government of the people by the people and for the people'?", options: { A: "George Washington", B: "Abraham Lincoln", C: "Winston Churchill", D: "Thomas Jefferson" }, correct: "B" },
+      { q: "Which organ of the government acts as the watchdog of the people's freedom?", options: { A: "Legislature", B: "Executive", C: "Media", D: "Judiciary" }, correct: "D" },
+      { q: "Identify the condition that is not essential for the success of democracy:", options: { A: "Education", B: "Economic equality", C: "Lack of ethical values", D: "Vigilance" }, correct: "C" },
+      { q: "Who stated that democracy is an efficient and effective government?", options: { A: "Abraham Lincoln", B: "Lord Bryce", C: "JW Garner", D: "J.S. Mill" }, correct: "C" },
+      { q: "Identify the best example of a presidential government:", options: { A: "Britain", B: "India", C: "Australia", D: "USA" }, correct: "D" },
+      { q: "Who stated 'referendum is a device whereby the electorate may vote an act which a legislative body has already passed'?", options: { A: "Lord Bryce", B: "RC Brooks", C: "J.W. Garner", D: "A.V. Dicey" }, correct: "B" },
+      { q: "The term referendum literally means:", options: { A: "To decide", B: "Call back", C: "Refer to", D: "People's choice" }, correct: "C" },
+      { q: "Recall is an important device of direct democracy. It means:", options: { A: "Remembering", B: "Re-election", C: "Call back", D: "Refer to" }, correct: "C" },
+      { q: "Plebiscite means:", options: { A: "Legal action", B: "People's decisions", C: "Executive order", D: "Judicial review" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 10,
+    title: "Secularism",
+    questions: [
+      { q: "Who propounded the theory of theocratic guardianship where the government itself would be secular?", options: { A: "Mahatma Gandhi", B: "Ayatollah Khomeini", C: "Kemal Ataturk", D: "Josephus" }, correct: "B" },
+      { q: "Which Constitutional Amendment Act of India made a provision for the word secular in the preamble?", options: { A: "44th Amendment Act", B: "73rd Amendment Act", C: "42nd Amendment Act", D: "86th Amendment Act" }, correct: "C" },
+      { q: "Identify the features of a secular state?", options: { A: "State religion", B: "Religious taxation", C: "Theocracy", D: "No place for Religion, Equal status, No state religion" }, correct: "D" },
+      { q: "Identify the wrong statement regarding a theocratic state:", options: { A: "Based primarily on religious elements", B: "A particular religion is declared official", C: "Rule of law prevails in a theocratic state", D: "Religious priests are given special significance" }, correct: "C" },
+      { q: "Technically, theocracy means:", options: { A: "Rule by People", B: "Rule by God", C: "Rule by King", D: "Rule by Law" }, correct: "B" },
+      { q: "What is the meaning of the term 'secular' in Latin?", options: { A: "Next world", B: "Divine", C: "Holy", D: "This world" }, correct: "D" },
+      { q: "Who first used the term secular in modern times?", options: { A: "Machiavelli", B: "G.J. Holyoake", C: "John Locke", D: "Karl Marx" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 11,
+    title: "Constitution",
+    questions: [
+      { q: "When was the American constitution adopted?", options: { A: "1215 AD", B: "1688 AD", C: "1776 AD", D: "1789 AD" }, correct: "C" },
+      { q: "Who played a key role in the formulation of the American constitution?", options: { A: "George Washington", B: "John Adams and James Madison", C: "Abraham Lincoln", D: "Alexander Hamilton" }, correct: "B" },
+      { q: "Which country's constitution is the best example of a rigid constitution?", options: { A: "Britain", B: "India", C: "USA", D: "France" }, correct: "C" },
+      { q: "Identify the wrong statement regarding a 'written constitution':", options: { A: "It is definite", B: "It is formulated by an assembly", C: "It is suitable to the uneducated and illiterate people", D: "It acts as a reference" }, correct: "C" },
+      { q: "The term 'constitution' is derived from a Latin word which means:", options: { A: "To Establish", B: "To Rule", C: "To Document", D: "To Free" }, correct: "A" },
+      { q: "Evolved constitution is also called as:", options: { A: "Enacted Constitution", B: "Cumulative Constitution", C: "Rigid Constitution", D: "Written Constitution" }, correct: "B" },
+      { q: "Enacted constitution is also known as:", options: { A: "Conventional Constitution", B: "Cumulative Constitution", C: "Flexible Constitution", D: "Unwritten Constitution" }, correct: "A" },
+      { q: "What is the first written constitution in the world?", options: { A: "Constitution of India", B: "Constitution of Britain", C: "Constitution of USA", D: "Constitution of France" }, correct: "C" },
+      { q: "What is the lengthiest, largest and most detailed constitution in the world?", options: { A: "Constitution of USA", B: "Constitution of Britain", C: "Constitution of India", D: "Constitution of Australia" }, correct: "C" },
+      { q: "Which country's constitution is the best example of an Unwritten and flexible constitution?", options: { A: "USA", B: "India", C: "Britain", D: "Canada" }, correct: "C" }
+    ]
+  },
+  {
+    chapterNumber: 12,
+    title: "Government",
+    questions: [
+      { q: "Which country is the best example for a unitary government?", options: { A: "USA", B: "India", C: "Britain", D: "Australia" }, correct: "C" },
+      { q: "What type of government is also known as responsible, cabinet, and Prime Ministerial government?", options: { A: "Presidential government", B: "Parliamentary government", C: "Dictatorship", D: "Monarchy" }, correct: "B" },
+      { q: "Which of the following is NOT a feature of a federal government?", options: { A: "Written Constitution", B: "Single citizenship", C: "Division of Powers", D: "Independent Judiciary" }, correct: "B" },
+      { q: "According to Aristotle's classification, what is the perverted form of polity?", options: { A: "Oligarchy", B: "Tyranny", C: "Democracy", D: "Aristocracy" }, correct: "C" },
+      { q: "Collective responsibility is a salient feature of:", options: { A: "Presidential government", B: "Federal government", C: "Parliamentary government", D: "Unitary government" }, correct: "C" },
+      { q: "The term federation is derived from the Latin word 'Foedus' which means:", options: { A: "Power and state", B: "Treaty or agreement", C: "Division", D: "Central rule" }, correct: "B" },
+      { q: "The first federal system came into being in the USA in the year:", options: { A: "1776 AD", B: "1789 AD", C: "1865 AD", D: "1914 AD" }, correct: "B" },
+      { q: "The theory of checks and balances is subsidiary to:", options: { A: "Theory of collective responsibility", B: "Theory of divine right", C: "The theory of separation of powers", D: "Theory of natural law" }, correct: "C" },
+      { q: "Who advocated the theory of the separation of powers?", options: { A: "John Locke", B: "Montesquieu", C: "Rousseau", D: "Hobbes" }, correct: "B" },
+      { q: "Which type of government is also known as Single Executive government?", options: { A: "Parliamentary government", B: "Federal government", C: "Unitary government", D: "Presidential government" }, correct: "D" }
+    ]
+  }
+];
+
+/* STATE */
+let currentChapterData = null;
+let currentIndex=0, score=0;
+let selectedChoice=null, answered={};
+let voice=null;
+
+/* VOICE (BULLETPROOF FEMALE + BUG FIX + BLANK FILTER) */
+function initVoice(){
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) return;
+
+  // Try to find a clear female/Indian English voice
+  voice = voices.find(v => 
+    v.name.includes("Neerja") || 
+    v.name.includes("Heera") || 
+    v.name.includes("Veena") || 
+    v.name.includes("Google UK English Female") || 
+    v.name.includes("Zira") || 
+    v.name.includes("female")
+  );
+
+  // Fallback if none of the above are found
+  if (!voice) {
+    voice = voices.find(v => v.lang.startsWith("en")) || voices[0];
+  }
+}
+
+// Ensure voices load properly on all browsers
+window.speechSynthesis.onvoiceschanged = initVoice;
+
+function stopSound(){
+  window.speechSynthesis.cancel();
+}
+
+function speak(text){
+  stopSound();
+  
+  if (!voice) initVoice();
+
+  // Replaces underscores with the word "blank"
+  const cleanText = text.replace(/_+/g, " blank ");
+
+  const u = new SpeechSynthesisUtterance(cleanText);
+  
+  // FORCE the language to Indian English (defaults to a clear female voice on most devices)
+  u.lang = 'en-IN';
+  
+  if (voice) u.voice = voice;
+
+  u.rate = 1.0; 
+  u.pitch = 1.0;
+  u.volume = 1.0;
+
+  // CHROME BUG FIX: Prevents the browser from silently deleting the audio before playing
+  window.speechUtteranceChunk = u;
+
+  window.speechSynthesis.speak(u);
+}
+/* DYNAMIC MENU RENDER */
+function renderMenu() {
+  const grid = document.getElementById("menuGrid");
+  grid.innerHTML = "";
+  
+  chaptersData.forEach((ch, index) => {
+    const card = document.createElement("div");
+    card.className = "menu-card";
+    card.onclick = () => startChapter(index);
+    
+    card.innerHTML = `
+      <div>Chapter ${ch.chapterNumber}: ${ch.title}</div>
+      <span class="q-count">${ch.questions.length} Qs</span>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+/* CHAPTER LOGIC */
+function startChapter(index){
+  currentChapterData = chaptersData[index];
+  
+  document.getElementById("homeScreen").classList.add("hidden");
+  document.getElementById("quizScreen").classList.remove("hidden");
+
+  document.getElementById("chapterTitle").innerText = `Chapter ${currentChapterData.chapterNumber}: ${currentChapterData.title}`;
+
+  currentIndex = 0;
+  score = 0;
+  answered = {};
+  loadQuestion();
+}
+
+function loadQuestion(){
+  selectedChoice = null;
+  const q = currentChapterData.questions[currentIndex];
+  const totalQs = currentChapterData.questions.length;
+
+  document.getElementById("qText").innerText = q.q;
+  document.getElementById("progressLabel").innerText = `Question ${currentIndex+1} / ${totalQs}`;
+
+  document.getElementById("optionsBox").innerHTML =
+    ["A","B","C","D"].map((l,i)=>`
+      <div class="option" id="opt-${l}" onclick="selectOption('${l}')">
+        <strong>${i+1}.</strong> ${q.options[l]}
+      </div>
+    `).join("");
+
+  repeatQuestion();
+}
+
+function repeatQuestion(){
+  const q = currentChapterData.questions[currentIndex];
+  speak(
+    `Question ${currentIndex+1}. ${q.q}.
+     Option 1. ${q.options.A}.
+     Option 2. ${q.options.B}.
+     Option 3. ${q.options.C}.
+     Option 4. ${q.options.D}.`
+  );
+}
+
+function selectOption(letter){
+  if (answered[currentIndex]) return;
+
+  selectedChoice = letter;
+  document.querySelectorAll(".option").forEach(o=>o.classList.remove("selected"));
+  document.getElementById(`opt-${letter}`).classList.add("selected");
+
+  speak(`You selected ${currentChapterData.questions[currentIndex].options[letter]}. Press Enter to confirm.`);
+}
+
+function confirmAnswer(){
+  if (!selectedChoice || answered[currentIndex]) return;
+
+  const q = currentChapterData.questions[currentIndex];
+  const correct = q.correct;
+  answered[currentIndex] = true;
+
+  if (selectedChoice === correct){
+    score++;
+    document.getElementById(`opt-${selectedChoice}`).classList.add("correct");
+    speak(`Correct. ${q.options[correct]}`);
+  } else {
+    document.getElementById(`opt-${selectedChoice}`).classList.add("wrong");
+    document.getElementById(`opt-${correct}`).classList.add("correct");
+    speak(`Incorrect. The correct answer is ${q.options[correct]}`);
+  }
+}
+
+function nextQuestion(){
+  const totalQs = currentChapterData.questions.length;
+  if (currentIndex < totalQs - 1){
+    currentIndex++;
+    loadQuestion();
+  } else {
+    speak(`Chapter completed. Your score is ${score} out of ${totalQs}.`);
+  }
+}
+
+function prevQuestion(){
+  if (currentIndex > 0){
+    currentIndex--;
+    loadQuestion();
+  }
+}
+
+function goHome(){
+  stopSound();
+  location.reload();
+}
+
+/* KEYBOARD CONTROLS FOR VISUALLY IMPAIRED STUDENTS */
+window.addEventListener("keydown", e => {
+  
+  // 1. Prevent default browser behavior 
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight", "Enter"].indexOf(e.key) > -1) {
+      e.preventDefault();
+  }
+
+  // 2. Selection Keys
+  if (e.key === "1") selectOption("A");
+  if (e.key === "2") selectOption("B");
+  if (e.key === "3") selectOption("C");
+  if (e.key === "4") selectOption("D");
+  
+  // 3. Confirm Key (Will ONLY confirm, never advance)
+  if (e.key === "Enter") confirmAnswer(); 
+  
+  // 4. Navigation Keys
+  if (e.key === "ArrowRight") nextQuestion(); // Move forward
+  if (e.key === "ArrowLeft") prevQuestion();  // Move backward
+  
+  // 5. Audio & Home Controls
+  if (e.key === "ArrowUp") repeatQuestion();  // Hear the question using Up Arrow
+  if (e.key === "ArrowDown") stopSound();     // Immediately mute the audio
+  if (e.key.toLowerCase() === "r") repeatQuestion(); // Hear the question using 'R' key
+  if (e.key.toLowerCase() === "h") goHome();         // Return to Home menu using 'H' key
+});
+window.onload = () => {
+  initVoice();
+  renderMenu();
+};
+</script>
+
+</body>
+</html>

@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Economics Master – Voice Based Chapters</title>
+
+<style>
+:root {
+  --primary:#2c3e50;
+  --accent:#8e44ad;
+  --success:#27ae60;
+  --error:#e74c3c;
+  --nav:#3498db;
+  --bg:#f4f7f6;
+}
+
+body {
+  margin:0;
+  padding:20px;
+  background:var(--bg);
+  font-family:Segoe UI, sans-serif;
+  display:flex;
+  justify-content:center;
+}
+
+.container {
+  width:100%;
+  max-width:820px;
+  background:#fff;
+  padding:30px;
+  border-radius:15px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.1);
+}
+
+.menu-grid {
+  display:grid;
+  grid-template-columns: 1fr; /* Single column for longer titles */
+  gap:15px;
+  margin-top:30px;
+}
+
+.menu-card {
+  background:var(--primary);
+  color:#fff;
+  padding:20px;
+  border-radius:10px;
+  font-size:1.2em;
+  font-weight:bold;
+  text-align:left;
+  cursor:pointer;
+  transition: background 0.3s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.menu-card span.q-count {
+  background: rgba(255,255,255,0.2);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.8em;
+}
+
+.menu-card:hover {
+  background:var(--accent);
+}
+
+.nav-info {
+  display:flex;
+  justify-content:space-between;
+  font-weight:bold;
+  color:#7f8c8d;
+  border-bottom:1px solid #eee;
+  padding-bottom:10px;
+  margin-bottom:20px;
+  font-size: 1.1em;
+}
+
+.question-text {
+  font-size:1.4em;
+  text-align:center;
+  color:var(--primary);
+  margin-bottom:25px;
+  min-height:3em;
+}
+
+.option {
+  border:2px solid #eee;
+  padding:15px;
+  border-radius:10px;
+  font-size:1.2em;
+  cursor:pointer;
+  margin-bottom:10px;
+}
+
+.option.selected {
+  background:#f4f0ff;
+  border-color:var(--accent);
+}
+
+.correct {
+  background:#d4edda !important;
+  border-color:var(--success) !important;
+}
+
+.wrong {
+  background:#f8d7da !important;
+  border-color:var(--error) !important;
+}
+
+.controls-row {
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin-top:15px;
+  flex-wrap:wrap;
+}
+
+.btn {
+  padding:12px 20px;
+  border:none;
+  border-radius:25px;
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.btn-nav { background:var(--nav); }
+.btn-confirm { background:var(--success); }
+.btn-repeat { background:var(--accent); }
+.btn-stop { background:#c0392b; }
+.btn-home { background:#7f8c8d; }
+
+.hidden { display:none; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div id="homeScreen">
+  <h1 style="text-align:center;color:var(--primary)">Economics Chapter Tests</h1>
+  <p style="text-align:center;color:#666">Select a chapter to begin</p>
+
+  <div class="menu-grid" id="menuGrid">
+    </div>
+</div>
+
+<div id="quizScreen" class="hidden">
+
+  <div class="nav-info">
+    <span id="chapterTitle">Chapter</span>
+    <span id="progressLabel">Question 1/X</span>
+  </div>
+
+  <div class="question-text" id="qText"></div>
+  <div id="optionsBox"></div>
+
+  <div class="controls-row">
+    <button class="btn btn-nav" onclick="prevQuestion()">← Prev</button>
+    <button class="btn btn-confirm" onclick="confirmAnswer()">Confirm</button>
+    <button class="btn btn-nav" onclick="nextQuestion()">Next →</button>
+  </div>
+
+  <div class="controls-row">
+    <button class="btn btn-repeat" onclick="repeatQuestion()">🔊 Repeat</button>
+    <button class="btn btn-stop" onclick="stopSound()">🛑 Stop</button>
+    <button class="btn btn-home" onclick="goHome()">🏠 Home</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+/* ==========================
+   🔴 ECONOMICS DYNAMIC DATA
+   ========================== */
+const chaptersData = [
+  {
+    chapterNumber: 1,
+    title: "Introduction",
+    questions: [
+      { q: "Which is NOT one of the central questions that the study of economics is supposed to answer?", options: { A: "What goods to produce?", B: "How goods are produced?", C: "For whom goods are produced?", D: "When are goods produced?" }, correct: "D" },
+      { q: "Under the deductive method, logic proceeds from:", options: { A: "Particular to general", B: "Concrete to abstract", C: "General to particular", D: "Historical to analytical" }, correct: "C" },
+      { q: "Which branch of economics is defined as a systematic body of knowledge?", options: { A: "Normative economics", B: "Positive economics", C: "Welfare economics", D: "Development economics" }, correct: "B" },
+      { q: "A mixed economy refers to:", options: { A: "Only private sector economy", B: "Only public sector economy", C: "Coexistence of public and private sectors", D: "Foreign controlled economy" }, correct: "C" },
+      { q: "The concave (bowed out) shape of the production possibility curve indicates:", options: { A: "Constant opportunity cost", B: "Decreasing opportunity cost", C: "Increasing opportunity cost", D: "Zero opportunity cost" }, correct: "C" },
+      { q: "The book 'Wealth of Nations' was written by:", options: { A: "Karl Marx", B: "Alfred Marshall", C: "Adam Smith", D: "J.M. Keynes" }, correct: "C" },
+      { q: "Macroeconomics was popularized by:", options: { A: "Adam Smith", B: "Lionel Robbins", C: "Alfred Marshall", D: "J.M. Keynes" }, correct: "D" },
+      { q: "The scarcity definition of economics was given by:", options: { A: "Adam Smith", B: "Lionel Robbins", C: "Paul Samuelson", D: "J.M. Keynes" }, correct: "B" },
+      { q: "Which branch of economics deals with general price level instead of relative prices?", options: { A: "Microeconomics", B: "Macroeconomics", C: "Normative economics", D: "Welfare economics" }, correct: "B" },
+      { q: "Inductive method is also known as:", options: { A: "Deductive method", B: "Analytical method", C: "Historical or empirical method", D: "Normative method" }, correct: "C" },
+      { q: "The Greek word 'Oikonomia' means:", options: { A: "Wealth management", B: "Production management", C: "Household management", D: "Public finance" }, correct: "C" },
+      { q: "Who is known as the father of economics?", options: { A: "J.M. Keynes", B: "Alfred Marshall", C: "Lionel Robbins", D: "Adam Smith" }, correct: "D" },
+      { q: "Which book was written by J.M. Keynes?", options: { A: "Wealth of Nations", B: "General Theory of Employment, Interest and Money", C: "Principles of Economics", D: "Capital" }, correct: "B" },
+      { q: "Which branch of economics studies problems relating to individual economic units?", options: { A: "Macroeconomics", B: "Welfare economics", C: "Microeconomics", D: "Development economics" }, correct: "C" },
+      { q: "The problem of allocating scarce resources to achieve maximum satisfaction is known as:", options: { A: "Economic growth", B: "Economic development", C: "Economic problem", D: "Central problem" }, correct: "C" }
+    ]
+  },
+  {
+    chapterNumber: 2,
+    title: "Theory of Consumer Behaviour",
+    questions: [
+      { q: "Which statement is true about the relationship between total utility and marginal utility?", options: { A: "Total utility increases when marginal utility is negative", B: "Total utility decreases when marginal utility is positive", C: "Total utility decreases when marginal utility is negative", D: "Total utility is maximum when marginal utility is maximum" }, correct: "C" },
+      { q: "The total utility after consuming four oranges is 20 and after five oranges is 19. What is the marginal utility of the fifth orange?", options: { A: "1", B: "0", C: "-1", D: "-2" }, correct: "C" },
+      { q: "Marginal utilities of good X and good Y are 30 utils and 45 utils respectively. If the price of good Y is ₹60, what is the price of good X at equilibrium?", options: { A: "₹30", B: "₹40", C: "₹45", D: "₹90" }, correct: "B" },
+      { q: "The convex shape of an indifference curve is due to:", options: { A: "Increasing marginal utility", B: "Constant marginal rate of substitution", C: "Decreasing marginal rate of substitution", D: "Increasing marginal rate of substitution" }, correct: "C" },
+      { q: "A parallel rightward shift in the budget line is due to:", options: { A: "Increase in prices of goods", B: "Decrease in income of consumer", C: "Increase in income of consumer", D: "Change in consumer preferences" }, correct: "C" },
+      { q: "In which utility analysis can utility be measured in definite numbers like 1, 2, 3, 4?", options: { A: "Ordinal utility", B: "Cardinal utility", C: "Marginal utility", D: "Total utility" }, correct: "B" },
+      { q: "According to the law of diminishing marginal utility, when more and more units of a commodity are consumed, marginal utility:", options: { A: "Increases", B: "Remains constant", C: "Decreases", D: "Becomes zero immediately" }, correct: "C" },
+      { q: "Indifference curves are always:", options: { A: "Concave to the origin", B: "Convex to the origin", C: "Straight lines", D: "Parallel to axes" }, correct: "B" },
+      { q: "The slope of an indifference curve is measured by:", options: { A: "Price ratio", B: "Marginal utility", C: "Marginal rate of substitution", D: "Opportunity cost" }, correct: "C" },
+      { q: "A set of indifference curves drawn on a graph is called:", options: { A: "Indifference schedule", B: "Indifference curve", C: "Indifference map", D: "Utility map" }, correct: "C" },
+      { q: "When total utility is maximum, marginal utility is:", options: { A: "Maximum", B: "Minimum", C: "Zero", D: "Negative" }, correct: "C" },
+      { q: "The sum of marginal utilities is equal to:", options: { A: "Average utility", B: "Total utility", C: "Consumer surplus", D: "Marginal utility" }, correct: "B" },
+      { q: "The condition for consumer equilibrium under the law of equi-marginal utility is:", options: { A: "MUx = MUy", B: "MUx / Px = MUy / Py = MUm", C: "TU is maximum", D: "Px = Py" }, correct: "B" },
+      { q: "If a consumer prefers A to B and B to C, then the consumer must prefer:", options: { A: "C to A", B: "B to A", C: "A to C", D: "C to B" }, correct: "C" },
+      { q: "If Px = 5, Qx = 2, Py = 3, Qy = 5, what is the money income of the consumer?", options: { A: "₹20", B: "₹25", C: "₹30", D: "₹35" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 3,
+    title: "The Theory of Demand",
+    questions: [
+      { q: "Demand for a commodity refers to:", options: { A: "Desire for the commodity", B: "Ability to purchase the commodity", C: "Willingness to pay the price of the commodity", D: "Demand is always measured per unit of time" }, correct: "D" },
+      { q: "The law of demand can be derived with the help of:", options: { A: "Law of diminishing marginal utility", B: "Law of returns to scale", C: "Law of supply", D: "Law of equi-marginal utility" }, correct: "A" },
+      { q: "Price elasticity of demand refers to the:", options: { A: "Change in supply due to price change", B: "Responsiveness of demand to a change in price", C: "Change in income due to price change", D: "Change in price due to demand change" }, correct: "B" },
+      { q: "A rightward shift in the demand curve is caused by:", options: { A: "Decrease in income", B: "Increase in price of the good itself", C: "Increase in price of a substitute good", D: "Decrease in population" }, correct: "C" },
+      { q: "If price of onions rises from ₹30 to ₹70 and quantity demanded falls from 7 kg to 3 kg, what is the price elasticity of demand (ARC method)?", options: { A: "0.5", B: "1.0", C: "1.5", D: "2.0" }, correct: "B" },
+      { q: "Veblen effect and substitution effect are considered as ______ to the law of demand.", options: { A: "Applications", B: "Assumptions", C: "Exceptions", D: "Conditions" }, correct: "C" },
+      { q: "If coffee and tea are substitutes, a rise in the price of coffee will lead to:", options: { A: "Decrease in demand for tea", B: "No change in demand for tea", C: "Increase in demand for tea", D: "Decrease in supply of tea" }, correct: "C" },
+      { q: "When total expenditure decreases with a fall in price and increases with a rise in price, demand is said to be:", options: { A: "Elastic", B: "Unitary elastic", C: "Perfectly elastic", D: "Inelastic" }, correct: "D" },
+      { q: "If price falls and demand increases due to increased purchasing power, it is called:", options: { A: "Substitution effect", B: "Income effect", C: "Price effect", D: "Scale effect" }, correct: "B" },
+      { q: "In the long run, demand for a product is generally elastic due to:", options: { A: "Habit formation", B: "Government policy", C: "Availability of substitutes", D: "Increase in population" }, correct: "C" },
+      { q: "What type of relationship exists between price and quantity demanded?", options: { A: "Direct relationship", B: "Positive relationship", C: "Inverse relationship", D: "No relationship" }, correct: "C" },
+      { q: "The combined effect of income effect and substitution effect is known as:", options: { A: "Demand effect", B: "Price effect", C: "Utility effect", D: "Consumption effect" }, correct: "B" },
+      { q: "Elasticity at any point on a straight-line downward sloping demand curve is measured by:", options: { A: "Upper segment ÷ lower segment", B: "Lower segment ÷ upper segment", C: "Total revenue ÷ price", D: "Price ÷ quantity" }, correct: "B" },
+      { q: "If price falls from ₹10 to ₹8 and quantity demanded rises from 100 units to 150 units, elasticity of demand is:", options: { A: "0.5", B: "1.0", C: "2.5", D: "5.0" }, correct: "C" },
+      { q: "Which type of goods are generally taxed by the finance minister?", options: { A: "Elastic goods", B: "Luxury goods", C: "Inelastic goods", D: "Inferior goods" }, correct: "C" }
+    ]
+  },
+  {
+    chapterNumber: 4,
+    title: "Production Analysis",
+    questions: [
+      { q: "In the law of variable proportions, when marginal product (MP) is equal to average product (AP), then AP is:", options: { A: "Minimum", B: "Maximum", C: "Zero", D: "Negative" }, correct: "B" },
+      { q: "The behavior of output due to change in all inputs is studied under:", options: { A: "Law of variable proportions", B: "Law of diminishing returns", C: "Law of returns to scale", D: "Law of supply" }, correct: "C" },
+      { q: "In the Cobb–Douglas production function, when the sum of exponents (a + b) equals one, it indicates:", options: { A: "Increasing returns to scale", B: "Decreasing returns to scale", C: "Constant returns to scale", D: "Law of diminishing returns" }, correct: "C" },
+      { q: "An isoquant measures:", options: { A: "Price ratio of inputs", B: "Marginal rate of substitution", C: "Marginal rate of technical substitution between labour and capital", D: "Total product" }, correct: "C" },
+      { q: "The stage of actual production in the law of variable proportions is:", options: { A: "Increasing returns to factor", B: "Constant returns to factor", C: "Decreasing returns to factor", D: "Negative returns to factor" }, correct: "C" },
+      { q: "If total product is 10 units and units of variable factor are 5, the average product is:", options: { A: "1 unit", B: "2 units", C: "5 units", D: "10 units" }, correct: "B" },
+      { q: "When total product becomes maximum, marginal product is:", options: { A: "Maximum", B: "Minimum", C: "Zero", D: "Negative" }, correct: "C" },
+      { q: "When the supply curve shifts to the right, it is known as:", options: { A: "Decrease in supply", B: "Increase in supply", C: "Extension of supply", D: "Contraction of supply" }, correct: "B" },
+      { q: "In the short run, when average product is increasing, marginal product is:", options: { A: "Equal to average product", B: "Less than average product", C: "Greater than average product", D: "Zero" }, correct: "C" },
+      { q: "When the percentage change in output is greater than the percentage change in inputs, it is called:", options: { A: "Constant returns to scale", B: "Decreasing returns to scale", C: "Increasing returns to scale", D: "Law of diminishing returns" }, correct: "C" },
+      { q: "The responsiveness of quantity supplied to a change in price is known as:", options: { A: "Elasticity of demand", B: "Elasticity of production", C: "Elasticity of supply", D: "Price elasticity" }, correct: "C" },
+      { q: "The set of all possible combinations of two inputs that yield the same level of output is known as:", options: { A: "Isocost", B: "Isoquant", C: "Production function", D: "Expansion path" }, correct: "B" },
+      { q: "Which factor of production is known as the produced means of production?", options: { A: "Land", B: "Labour", C: "Capital", D: "Entrepreneur" }, correct: "C" },
+      { q: "Under the law of variable proportions, at the point of inflection, marginal product is:", options: { A: "Zero", B: "Negative", C: "Maximum", D: "Equal to average product" }, correct: "C" },
+      { q: "The economies that accrue to each firm due to the expansion of the industry as a whole are called:", options: { A: "Internal economies", B: "External economies", C: "Scale economies", D: "Localization economies" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 5,
+    title: "Cost and Revenue Analysis",
+    questions: [
+      { q: "The cost of self-owned and self-employed resources is known as:", options: { A: "Explicit cost", B: "Implicit cost", C: "Fixed cost", D: "Variable cost" }, correct: "B" },
+      { q: "If total fixed cost is ₹200 and total variable cost is ₹225, what is the total cost?", options: { A: "₹400", B: "₹425", C: "₹450", D: "₹500" }, correct: "B" },
+      { q: "Total cost at zero level of output is equal to:", options: { A: "Total variable cost", B: "Total fixed cost", C: "Average cost", D: "Marginal cost" }, correct: "B" },
+      { q: "If total cost at 5 units is ₹500 and at 7 units is ₹700, marginal cost at the 7th unit is:", options: { A: "₹50", B: "₹100", C: "₹150", D: "₹200" }, correct: "B" },
+      { q: "The minimum point of the average cost curve is known as:", options: { A: "Break-even point", B: "Shutdown point", C: "Optimum point", D: "Equilibrium point" }, correct: "C" },
+      { q: "The cost incurred in producing one additional unit of output is called:", options: { A: "Total cost", B: "Average cost", C: "Marginal cost", D: "Variable cost" }, correct: "C" },
+      { q: "The long-run average cost (LAC) curve is also known as:", options: { A: "U-shaped curve", B: "Envelope curve", C: "Cost curve", D: "Planning curve" }, correct: "B" },
+      { q: "The shape of the average fixed cost (AFC) curve is:", options: { A: "Straight line", B: "U-shaped", C: "Rectangular hyperbola", D: "Upward sloping" }, correct: "C" },
+      { q: "When average cost is at its minimum, marginal cost is:", options: { A: "Greater than average cost", B: "Less than average cost", C: "Equal to average cost", D: "Zero" }, correct: "C" },
+      { q: "When average revenue decreases, marginal revenue is:", options: { A: "Greater than average revenue", B: "Equal to average revenue", C: "Less than average revenue", D: "Zero" }, correct: "C" },
+      { q: "The salary of a manager working in his own factory is treated as:", options: { A: "Explicit cost", B: "Implicit cost", C: "Fixed cost", D: "Variable cost" }, correct: "B" },
+      { q: "Average cost minus average fixed cost is equal to:", options: { A: "Marginal cost", B: "Average variable cost", C: "Total variable cost", D: "Total cost" }, correct: "B" },
+      { q: "If total revenue rises from ₹10,000 to ₹15,000 when output increases from 10 to 12 units, marginal revenue is:", options: { A: "₹1,000", B: "₹2,000", C: "₹2,500", D: "₹5,000" }, correct: "C" },
+      { q: "Average revenue (AR) is always equal to:", options: { A: "Total revenue", B: "Marginal revenue", C: "Price", D: "Profit" }, correct: "C" },
+      { q: "The mathematical relationship between cost and its determinants is known as:", options: { A: "Revenue function", B: "Production function", C: "Cost function", D: "Demand function" }, correct: "C" }
+    ]
+  },
+  {
+    chapterNumber: 6,
+    title: "Market Structure",
+    questions: [
+      { q: "The price at which market demand is equal to market supply is known as:", options: { A: "Market price", B: "Equilibrium price", C: "Normal price", D: "Controlled price" }, correct: "B" },
+      { q: "A firm reaches shutdown point when:", options: { A: "AR = AC", B: "AR = MC", C: "AR = AVC", D: "MR = MC" }, correct: "C" },
+      { q: "Which of the following is NOT a feature of monopoly market?", options: { A: "Single seller", B: "No close substitutes", C: "Price maker", D: "One buyer and one seller" }, correct: "D" },
+      { q: "The condition for equilibrium of a firm under perfect competition is:", options: { A: "AR = AC", B: "AR = AVC", C: "MR = MC", D: "TR = TC" }, correct: "C" },
+      { q: "Break-even point is a situation where the firm earns:", options: { A: "Supernormal profit", B: "Normal profit", C: "Loss", D: "No profit and no loss" }, correct: "D" },
+      { q: "If average revenue is ₹20 and average cost is ₹15, the firm earns:", options: { A: "Normal profit", B: "Subnormal profit", C: "Supernormal profit", D: "Loss" }, correct: "C" },
+      { q: "Close substitutes are a feature of which market structure?", options: { A: "Perfect competition", B: "Monopoly", C: "Monopolistic competition", D: "Oligopoly" }, correct: "C" },
+      { q: "The condition P = AR = MR is a feature of:", options: { A: "Monopoly", B: "Monopolistic competition", C: "Perfect competition", D: "Oligopoly" }, correct: "C" },
+      { q: "The kinked demand curve is associated with which market?", options: { A: "Perfect competition", B: "Monopoly", C: "Monopolistic competition", D: "Oligopoly" }, correct: "D" },
+      { q: "The point on the supply curve where a firm earns only normal profit is called:", options: { A: "Shutdown point", B: "Break-even point", C: "Equilibrium point", D: "Optimum point" }, correct: "B" },
+      { q: "The average revenue (AR) curve of a firm is also known as:", options: { A: "Supply curve", B: "Cost curve", C: "Demand curve", D: "Production curve" }, correct: "C" },
+      { q: "Under perfect competition, the demand curve of a firm is:", options: { A: "Downward sloping", B: "Upward sloping", C: "Horizontal", D: "Vertical" }, correct: "C" },
+      { q: "Imposing an upper limit on the price of a good by the government is known as:", options: { A: "Price floor", B: "Price ceiling", C: "Subsidy", D: "Taxation" }, correct: "B" },
+      { q: "If demand decreases while supply remains constant, equilibrium price will:", options: { A: "Increase", B: "Remain constant", C: "Decrease", D: "Become zero" }, correct: "C" },
+      { q: "In the long run, a perfectly competitive firm earns:", options: { A: "Supernormal profits", B: "Monopoly profits", C: "Normal profits", D: "Losses" }, correct: "C" }
+    ]
+  },
+  {
+    chapterNumber: 7,
+    title: "Theory of Distribution",
+    questions: [
+      { q: "According to the modern theory of rent, rent accrues to:", options: { A: "Land only", B: "Labour only", C: "Capital only", D: "Any factor of production" }, correct: "D" },
+      { q: "If marginal revenue product is greater than factor cost, the firm should:", options: { A: "Reduce employment of the factor", B: "Stop employing the factor", C: "Increase employment of the factor", D: "Replace the factor" }, correct: "C" },
+      { q: "The return to man-made appliances due to fixed supply in the short period is called:", options: { A: "Rent", B: "Interest", C: "Quasi rent", D: "Profit" }, correct: "C" },
+      { q: "Which of the following is an incorrect match?", options: { A: "Dynamic theory of profit – J.B. Clark", B: "Risk theory of profit – Prof. Hawley", C: "Modern theory of wages – Prof. Knight", D: "Wages fund theory – J.S. Mill" }, correct: "C" },
+      { q: "Which of the following is NOT a determinant of the supply of loanable funds?", options: { A: "Savings", B: "Investment", C: "Bank credit", D: "Dishoarding" }, correct: "B" },
+      { q: "The marginal productivity theory operates under perfect competition based on which law?", options: { A: "Law of supply", B: "Law of diminishing marginal returns", C: "Law of demand", D: "Law of returns to scale" }, correct: "B" },
+      { q: "According to Joan Robinson, rent is the surplus earned by a factor over and above its:", options: { A: "Wages", B: "Interest", C: "Transfer earnings", D: "Opportunity cost" }, correct: "C" },
+      { q: "According to Keynes, interest rate is determined by the interaction of money supply and:", options: { A: "Savings", B: "Investment", C: "Liquidity preference", D: "Marginal efficiency of capital" }, correct: "C" },
+      { q: "According to Walker, a worker is considered as a ______ claimant.", options: { A: "Primary", B: "Residual", C: "Fixed", D: "Priority" }, correct: "B" },
+      { q: "According to Schumpeter, profit is the reward for entrepreneurial:", options: { A: "Risk bearing", B: "Managerial skills", C: "Innovative skills", D: "Organising ability" }, correct: "C" },
+      { q: "Who stated that rent is the difference between superior and inferior land?", options: { A: "Adam Smith", B: "Alfred Marshall", C: "David Ricardo", D: "J.B. Clark" }, correct: "C" },
+      { q: "Which theory of wages is known as the Iron Law of Wages?", options: { A: "Marginal productivity theory", B: "Wages fund theory", C: "Subsistence theory of wages", D: "Residual claimant theory" }, correct: "C" },
+      { q: "If bond prices fall, the rate of interest will:", options: { A: "Fall", B: "Remain constant", C: "Increase", D: "Become zero" }, correct: "C" },
+      { q: "Which term was substituted by Marshall in the Abstinence theory of interest?", options: { A: "Saving", B: "Waiting", C: "Risk", D: "Capital" }, correct: "B" },
+      { q: "Who classified risks into foreseen (insurable) and unforeseen (non-insurable)?", options: { A: "J.B. Clark", B: "Alfred Marshall", C: "David Ricardo", D: "Professor Knight" }, correct: "D" }
+    ]
+  },
+  {
+    chapterNumber: 8,
+    title: "National Income Accounting",
+    questions: [
+      { q: "NNP at market price (NNPMP) is equal to:", options: { A: "GDPMP − Depreciation", B: "GNPMP − Depreciation", C: "GDPMP + NFIA − Depreciation", D: "Both B and C" }, correct: "D" },
+      { q: "The difference between GNPMP and GDPMP is equal to:", options: { A: "Net domestic investment", B: "Net factor income from abroad", C: "Gross factor income from abroad", D: "Gross foreign investment" }, correct: "B" },
+      { q: "The difference between indirect taxes and subsidies is known as:", options: { A: "Gross indirect taxes", B: "Gross subsidies", C: "Net indirect taxes", D: "Net exports" }, correct: "C" },
+      { q: "Which of the following national income equations is NOT correct?", options: { A: "GDPMP = C + I + G + (X − M)", B: "GNPMP = C + I + G + (X − M) + NFIA", C: "NNPMP = C + I + G + (X − M) + NFIA − Depreciation", D: "NNPFC = C + I + G + (X − M) + NFIA" }, correct: "D" },
+      { q: "If Nominal GDP is ₹1000 and Real GDP is ₹500, the GDP deflator is:", options: { A: "100", B: "150", C: "200", D: "500" }, correct: "C" },
+      { q: "Income earned by an Indian working abroad and sent to India is included in:", options: { A: "GDPMP", B: "GDPFC", C: "GNPMP", D: "NNPFC" }, correct: "C" },
+      { q: "Goods and services produced within the domestic territory of a country are included in:", options: { A: "Gross National Product", B: "Gross Domestic Product", C: "Net National Product", D: "Personal Income" }, correct: "B" },
+      { q: "Government expenditure incurred by selling goods at a price lower than market price is called:", options: { A: "Tax", B: "Transfer payment", C: "Subsidy", D: "Grant" }, correct: "C" },
+      { q: "The difference between NNP at market price and NNP at factor cost is:", options: { A: "Depreciation", B: "Net indirect taxes", C: "NFIA", D: "Subsidies" }, correct: "B" },
+      { q: "In India, national income is mainly calculated by which methods?", options: { A: "Output and expenditure methods", B: "Income and expenditure methods", C: "Output and income methods", D: "Value added and expenditure methods" }, correct: "C" },
+      { q: "GNP at market price is equal to:", options: { A: "GDPMP − NFIA", B: "GDPMP + NFIA", C: "NNPMP + Depreciation", D: "NNPFC + Net indirect taxes" }, correct: "B" },
+      { q: "GDP at factor cost minus depreciation is equal to:", options: { A: "NNPFC", B: "NDPFC", C: "GNPFC", D: "NDPMP" }, correct: "B" },
+      { q: "The difference between GNPMP and NNPMP is:", options: { A: "Net indirect taxes", B: "NFIA", C: "Depreciation", D: "Subsidies" }, correct: "C" },
+      { q: "GDP deflator is calculated as:", options: { A: "Real GDP ÷ Nominal GDP × 100", B: "Nominal GDP ÷ Real GDP × 100", C: "NNP ÷ GDP × 100", D: "GDP ÷ NNP × 100" }, correct: "B" },
+      { q: "Gross Value Added at basic prices is equal to:", options: { A: "GDPMP − Net indirect taxes", B: "GDPFC + Net indirect taxes", C: "GNPMP − Depreciation", D: "NNPFC + NFIA" }, correct: "A" }
+    ]
+  },
+  {
+    chapterNumber: 9,
+    title: "Theory of Employment and Public Finance",
+    questions: [
+      { q: "Which of the following is NOT an assumption of the classical theory of employment?", options: { A: "Full employment", B: "Laissez-faire economy", C: "Perfect competition", D: "Short period" }, correct: "D" },
+      { q: "The point at which aggregate demand is equal to aggregate supply is called:", options: { A: "Direct demand", B: "Indirect demand", C: "Effective demand", D: "Derived demand" }, correct: "C" },
+      { q: "Which of the following is NOT considered as public revenue?", options: { A: "Direct taxes", B: "Indirect taxes", C: "Goods and Services Tax", D: "Transfer payments" }, correct: "D" },
+      { q: "If revenue receipts are ₹800 crore, capital receipts are ₹500 crore, borrowings and other liabilities are ₹400 crore, and total expenditure is ₹1200 crore, the fiscal deficit is:", options: { A: "₹100 crore", B: "₹300 crore", C: "₹400 crore", D: "₹500 crore" }, correct: "B" },
+      { q: "Goods and Services Tax (GST) in the government budget is classified as:", options: { A: "Direct tax", B: "Income tax", C: "Corporate tax", D: "Indirect tax" }, correct: "D" },
+      { q: "Minimum interference of the government in economic activities is known as:", options: { A: "Socialism", B: "Mixed economy", C: "Laissez-faire", D: "Planned economy" }, correct: "C" },
+      { q: "When total receipts are equal to total expenditure, the budget is called:", options: { A: "Deficit budget", B: "Surplus budget", C: "Balanced budget", D: "Primary budget" }, correct: "C" },
+      { q: "The ratio of change in income to change in investment is known as:", options: { A: "Accelerator", B: "Multiplier", C: "Marginal propensity to consume", D: "Marginal propensity to save" }, correct: "B" },
+      { q: "Fiscal deficit minus interest payments is equal to:", options: { A: "Budget deficit", B: "Primary deficit", C: "Revenue deficit", D: "Capital deficit" }, correct: "B" },
+      { q: "If borrowings and other liabilities are added to the budget deficit, it becomes:", options: { A: "Revenue deficit", B: "Primary deficit", C: "Fiscal deficit", D: "Surplus budget" }, correct: "C" },
+      { q: "In which year was Goods and Services Tax (GST) introduced in India?", options: { A: "2015", B: "2016", C: "2017", D: "2018" }, correct: "C" },
+      { q: "The ratio of change in consumption to change in income is known as:", options: { A: "Multiplier", B: "Accelerator", C: "Marginal propensity to consume", D: "Marginal propensity to save" }, correct: "C" },
+      { q: "The statement 'Supply creates its own demand' was given by:", options: { A: "J.M. Keynes", B: "Adam Smith", C: "J.B. Say", D: "David Ricardo" }, correct: "C" },
+      { q: "The slope of the consumption function represents:", options: { A: "Multiplier", B: "Marginal propensity to save", C: "Average propensity to consume", D: "Marginal propensity to consume" }, correct: "D" },
+      { q: "The relationship between initial increase in investment and total increase in income is called:", options: { A: "Accelerator", B: "Multiplier", C: "Propensity", D: "Elasticity" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 10,
+    title: "Money, Banking and Inflation",
+    questions: [
+      { q: "Which of the following is NOT a quantitative credit control measure of the RBI?", options: { A: "Repo rate", B: "Bank rate", C: "CRR", D: "Margin requirements" }, correct: "D" },
+      { q: "Which currency notes were demonetized in India in 2016?", options: { A: "₹100 and ₹200", B: "₹200 and ₹500", C: "₹500 and ₹1000", D: "₹500 and ₹2000" }, correct: "C" },
+      { q: "The rate at which commercial banks borrow money from the RBI is called:", options: { A: "SLR", B: "Repo rate", C: "Reverse repo rate", D: "CRR" }, correct: "B" },
+      { q: "When aggregate demand exceeds aggregate supply, it results in:", options: { A: "Cost-push inflation", B: "Creeping inflation", C: "Hyper inflation", D: "Demand-pull inflation" }, correct: "D" },
+      { q: "Which measure of money supply is the most liquid?", options: { A: "M1", B: "M2", C: "M3", D: "M4" }, correct: "A" },
+      { q: "Which measure of money supply is known as broad money?", options: { A: "M0", B: "M1", C: "M2", D: "M3" }, correct: "D" },
+      { q: "The definition 'Money is what money does' was given by:", options: { A: "Keynes", B: "Marshall", C: "Walker", D: "Ricardo" }, correct: "C" },
+      { q: "Currency in circulation plus bankers’ deposits with RBI plus other deposits with RBI is called:", options: { A: "M1", B: "M2", C: "M3", D: "Reserve money (M0)" }, correct: "D" },
+      { q: "During inflation, the purchasing power of money:", options: { A: "Increases", B: "Decreases", C: "Remains constant", D: "Becomes zero" }, correct: "B" },
+      { q: "Which institution is responsible for overall credit and monetary policy in India?", options: { A: "Government of India", B: "SEBI", C: "Reserve Bank of India", D: "NABARD" }, correct: "C" },
+      { q: "The full form of IFSC is:", options: { A: "Indian Financial Service Code", B: "International Financial System Code", C: "Indian Financial System Code", D: "Integrated Financial Service Code" }, correct: "C" },
+      { q: "The latest demonetization measure in India was taken in:", options: { A: "2014", B: "2015", C: "2016", D: "2017" }, correct: "C" },
+      { q: "M1 plus net time deposits with the banking system is equal to:", options: { A: "M2", B: "M3", C: "M4", D: "M0" }, correct: "B" },
+      { q: "The ratio of change in money supply to a given change in monetary base is called:", options: { A: "Credit multiplier", B: "Deposit multiplier", C: "Money multiplier", D: "Investment multiplier" }, correct: "C" },
+      { q: "An instrument for borrowing funds by selling securities with an agreement to repurchase them at a future date is known as:", options: { A: "Bank rate", B: "Reverse repo", C: "Repo rate", D: "Open market operation" }, correct: "C" }
+    ]
+  }
+];
+
+/* STATE */
+let currentChapterData = null;
+let currentIndex=0, score=0;
+let selectedChoice=null, answered={};
+let voice=null;
+
+/* VOICE (BULLETPROOF FEMALE + BUG FIX + BLANK FILTER) */
+function initVoice(){
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) return;
+
+  // Try to find a clear female/Indian English voice
+  voice = voices.find(v => 
+    v.name.includes("Neerja") || 
+    v.name.includes("Heera") || 
+    v.name.includes("Veena") || 
+    v.name.includes("Google UK English Female") || 
+    v.name.includes("Zira") || 
+    v.name.includes("female")
+  );
+
+  // Fallback if none of the above are found
+  if (!voice) {
+    voice = voices.find(v => v.lang.startsWith("en")) || voices[0];
+  }
+}
+
+// Ensure voices load properly on all browsers
+window.speechSynthesis.onvoiceschanged = initVoice;
+
+function stopSound(){
+  window.speechSynthesis.cancel();
+}
+
+function speak(text){
+  stopSound();
+  
+  if (!voice) initVoice();
+
+  // Replaces underscores with the word "blank"
+  const cleanText = text.replace(/_+/g, " blank ");
+
+  const u = new SpeechSynthesisUtterance(cleanText);
+  
+  // FORCE the language to Indian English (defaults to a clear female voice on most devices)
+  u.lang = 'en-IN';
+  
+  if (voice) u.voice = voice;
+
+  u.rate = 1.0; 
+  u.pitch = 1.0;
+  u.volume = 1.0;
+
+  // CHROME BUG FIX: Prevents the browser from silently deleting the audio before playing
+  window.speechUtteranceChunk = u;
+
+  window.speechSynthesis.speak(u);
+}
+/* DYNAMIC MENU RENDER */
+function renderMenu() {
+  const grid = document.getElementById("menuGrid");
+  grid.innerHTML = "";
+  
+  chaptersData.forEach((ch, index) => {
+    const card = document.createElement("div");
+    card.className = "menu-card";
+    card.onclick = () => startChapter(index);
+    
+    card.innerHTML = `
+      <div>Chapter ${ch.chapterNumber}: ${ch.title}</div>
+      <span class="q-count">${ch.questions.length} Qs</span>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+/* CHAPTER LOGIC */
+function startChapter(index){
+  currentChapterData = chaptersData[index];
+  
+  document.getElementById("homeScreen").classList.add("hidden");
+  document.getElementById("quizScreen").classList.remove("hidden");
+
+  document.getElementById("chapterTitle").innerText = `Chapter ${currentChapterData.chapterNumber}: ${currentChapterData.title}`;
+
+  currentIndex = 0;
+  score = 0;
+  answered = {};
+  loadQuestion();
+}
+
+function loadQuestion(){
+  selectedChoice = null;
+  const q = currentChapterData.questions[currentIndex];
+  const totalQs = currentChapterData.questions.length;
+
+  document.getElementById("qText").innerText = q.q;
+  document.getElementById("progressLabel").innerText = `Question ${currentIndex+1} / ${totalQs}`;
+
+  document.getElementById("optionsBox").innerHTML =
+    ["A","B","C","D"].map((l,i)=>`
+      <div class="option" id="opt-${l}" onclick="selectOption('${l}')">
+        <strong>${i+1}.</strong> ${q.options[l]}
+      </div>
+    `).join("");
+
+  repeatQuestion();
+}
+
+function repeatQuestion(){
+  const q = currentChapterData.questions[currentIndex];
+  speak(
+    `Question ${currentIndex+1}. ${q.q}.
+     Option 1. ${q.options.A}.
+     Option 2. ${q.options.B}.
+     Option 3. ${q.options.C}.
+     Option 4. ${q.options.D}.`
+  );
+}
+
+function selectOption(letter){
+  if (answered[currentIndex]) return;
+
+  selectedChoice = letter;
+  document.querySelectorAll(".option").forEach(o=>o.classList.remove("selected"));
+  document.getElementById(`opt-${letter}`).classList.add("selected");
+
+  speak(`You selected ${currentChapterData.questions[currentIndex].options[letter]}. Press Enter to confirm.`);
+}
+
+function confirmAnswer(){
+  if (!selectedChoice || answered[currentIndex]) return;
+
+  const q = currentChapterData.questions[currentIndex];
+  const correct = q.correct;
+  answered[currentIndex] = true;
+
+  if (selectedChoice === correct){
+    score++;
+    document.getElementById(`opt-${selectedChoice}`).classList.add("correct");
+    speak(`Correct. ${q.options[correct]}`);
+  } else {
+    document.getElementById(`opt-${selectedChoice}`).classList.add("wrong");
+    document.getElementById(`opt-${correct}`).classList.add("correct");
+    speak(`Incorrect. The correct answer is ${q.options[correct]}`);
+  }
+}
+
+function nextQuestion(){
+  const totalQs = currentChapterData.questions.length;
+  if (currentIndex < totalQs - 1){
+    currentIndex++;
+    loadQuestion();
+  } else {
+    speak(`Chapter completed. Your score is ${score} out of ${totalQs}.`);
+  }
+}
+
+function prevQuestion(){
+  if (currentIndex > 0){
+    currentIndex--;
+    loadQuestion();
+  }
+}
+
+function goHome(){
+  stopSound();
+  location.reload();
+}
+
+/* KEYBOARD */
+window.addEventListener("keydown", e => {
+  if (e.key === "1") selectOption("A");
+  if (e.key === "2") selectOption("B");
+  if (e.key === "3") selectOption("C");
+  if (e.key === "4") selectOption("D");
+  if (e.key === "Enter") confirmAnswer();
+});
+
+window.onload = () => {
+  initVoice();
+  renderMenu();
+};
+</script>
+
+</body>
+</html>
