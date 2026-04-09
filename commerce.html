@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Commerce Master – Voice Based Chapters</title>
+
+<style>
+:root {
+  --primary:#2c3e50;
+  --accent:#8e44ad;
+  --success:#27ae60;
+  --error:#e74c3c;
+  --nav:#3498db;
+  --bg:#f4f7f6;
+}
+
+body {
+  margin:0;
+  padding:20px;
+  background:var(--bg);
+  font-family:Segoe UI, sans-serif;
+  display:flex;
+  justify-content:center;
+}
+
+.container {
+  width:100%;
+  max-width:820px;
+  background:#fff;
+  padding:30px;
+  border-radius:15px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.1);
+}
+
+.menu-grid {
+  display:grid;
+  grid-template-columns: 1fr; /* Single column for longer titles */
+  gap:15px;
+  margin-top:30px;
+}
+
+.menu-card {
+  background:var(--primary);
+  color:#fff;
+  padding:20px;
+  border-radius:10px;
+  font-size:1.2em;
+  font-weight:bold;
+  text-align:left;
+  cursor:pointer;
+  transition: background 0.3s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.menu-card span.q-count {
+  background: rgba(255,255,255,0.2);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.8em;
+}
+
+.menu-card:hover {
+  background:var(--accent);
+}
+
+.nav-info {
+  display:flex;
+  justify-content:space-between;
+  font-weight:bold;
+  color:#7f8c8d;
+  border-bottom:1px solid #eee;
+  padding-bottom:10px;
+  margin-bottom:20px;
+  font-size: 1.1em;
+}
+
+.question-text {
+  font-size:1.4em;
+  text-align:center;
+  color:var(--primary);
+  margin-bottom:25px;
+  min-height:3em;
+}
+
+.option {
+  border:2px solid #eee;
+  padding:15px;
+  border-radius:10px;
+  font-size:1.2em;
+  cursor:pointer;
+  margin-bottom:10px;
+}
+
+.option.selected {
+  background:#f4f0ff;
+  border-color:var(--accent);
+}
+
+.correct {
+  background:#d4edda !important;
+  border-color:var(--success) !important;
+}
+
+.wrong {
+  background:#f8d7da !important;
+  border-color:var(--error) !important;
+}
+
+.controls-row {
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin-top:15px;
+  flex-wrap:wrap;
+}
+
+.btn {
+  padding:12px 20px;
+  border:none;
+  border-radius:25px;
+  color:#fff;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.btn-nav { background:var(--nav); }
+.btn-confirm { background:var(--success); }
+.btn-repeat { background:var(--accent); }
+.btn-stop { background:#c0392b; }
+.btn-home { background:#7f8c8d; }
+
+.hidden { display:none; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div id="homeScreen">
+  <h1 style="text-align:center;color:var(--primary)">Commerce Chapter Tests</h1>
+  <p style="text-align:center;color:#666">Select a chapter to begin</p>
+
+  <div class="menu-grid" id="menuGrid">
+    </div>
+</div>
+
+<div id="quizScreen" class="hidden">
+
+  <div class="nav-info">
+    <span id="chapterTitle">Chapter</span>
+    <span id="progressLabel">Question 1/X</span>
+  </div>
+
+  <div class="question-text" id="qText"></div>
+  <div id="optionsBox"></div>
+
+  <div class="controls-row">
+    <button class="btn btn-nav" onclick="prevQuestion()">← Prev</button>
+    <button class="btn btn-confirm" onclick="confirmAnswer()">Confirm</button>
+    <button class="btn btn-nav" onclick="nextQuestion()">Next →</button>
+  </div>
+
+  <div class="controls-row">
+    <button class="btn btn-repeat" onclick="repeatQuestion()">🔊 Repeat</button>
+    <button class="btn btn-stop" onclick="stopSound()">🛑 Stop</button>
+    <button class="btn btn-home" onclick="goHome()">🏠 Home</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+/* ==========================
+   🔴 COMMERCE DYNAMIC DATA
+   ========================== */
+const chaptersData = [
+  {
+    chapterNumber: 1,
+    title: "Concept of Business",
+    questions: [
+      { q: "The term business refers to the state of being:", options: { A: "Idle", B: "Busy", C: "Profitable", D: "Active" }, correct: "B" },
+      { q: "All the activities of human beings can be broadly classified into economic and:", options: { A: "Social activities", B: "Personal activities", C: "Non-Economic activities", D: "Political activities" }, correct: "C" },
+      { q: "Economic activities refer to the activities involved with:", options: { A: "Charity", B: "Time", C: "Barter", D: "Money" }, correct: "D" },
+      { q: "Chartered Accountant (CA) is an example for:", options: { A: "Business", B: "Profession", C: "Employment", D: "Trade" }, correct: "B" },
+      { q: "The relationship between the employer and employee is master and:", options: { A: "Friend", B: "Partner", C: "Servant", D: "Owner" }, correct: "C" },
+      { q: "Which of the following are known as intangible and invisible goods?", options: { A: "Assets", B: "Stocks", C: "Services", D: "Capital" }, correct: "C" },
+      { q: "Which goods are meant for direct use by the ultimate consumers?", options: { A: "Consumer goods", B: "Capital goods", C: "Producer goods", D: "Intermediate goods" }, correct: "A" },
+      { q: "Which goods are used for the production of consumer or capital goods?", options: { A: "Finished goods", B: "Consumer goods", C: "Retail goods", D: "Producer goods" }, correct: "D" },
+      { q: "The primary objective of the business is to earn:", options: { A: "Goodwill", B: "Profit", C: "Money", D: "Fame" }, correct: "B" },
+      { q: "What implies an uncertainty of profit or possibility of loss?", options: { A: "Danger", B: "Speculation", C: "Risk", D: "Hazard" }, correct: "C" },
+      { q: "'The primary aim of the business should be service and the subsidiary aim should be earning profit' was pronounced by:", options: { A: "Adam Smith", B: "Henry Ford", C: "F.W. Taylor", D: "Peter Drucker" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 2,
+    title: "Business Activities",
+    questions: [
+      { q: "The production side of business activity is referred to as:", options: { A: "Commerce", B: "Trade", C: "Market", D: "Industry" }, correct: "D" },
+      { q: "The equation form of _____ is industry + commerce.", options: { A: "Trade", B: "Business", C: "Economy", D: "Market" }, correct: "B" },
+      { q: "The equation form of _____ is trade + aids to trade.", options: { A: "Business", B: "Commerce", C: "Industry", D: "Economy" }, correct: "B" },
+      { q: "What refers to the quality of life enjoyed by the members of a society?", options: { A: "Cost of living", B: "Per capita income", C: "Standard of living", D: "National income" }, correct: "C" },
+      { q: "Which of the following is also known as domestic trade or internal trade?", options: { A: "Foreign trade", B: "International trade", C: "Home trade", D: "Wholesale trade" }, correct: "C" },
+      { q: "Which of the following is also known as external trade and international trade?", options: { A: "Home trade", B: "Retail trade", C: "Domestic trade", D: "Foreign trade" }, correct: "D" },
+      { q: "Entrepot trade is also known as _____ trade.", options: { A: "Import", B: "Re-export", C: "Export", D: "Domestic" }, correct: "B" },
+      { q: "Personal hindrance can be removed by:", options: { A: "Transport", B: "Trade", C: "Insurance", D: "Banking" }, correct: "B" },
+      { q: "What removes the hindrance of place?", options: { A: "Transport", B: "Warehousing", C: "Trade", D: "Advertising" }, correct: "A" },
+      { q: "What removes the hindrance of financial problems?", options: { A: "Insurance", B: "Trade", C: "Banking", D: "Warehousing" }, correct: "C" },
+      { q: "What removes the hindrance of time?", options: { A: "Transport", B: "Communication", C: "Warehousing", D: "Banking" }, correct: "C" },
+      { q: "What removes the hindrance of risk?", options: { A: "Banking", B: "Trade", C: "Advertising", D: "Insurance" }, correct: "D" },
+      { q: "What removes the hindrance of knowledge?", options: { A: "Communication", B: "Transport", C: "Advertisement", D: "Warehousing" }, correct: "C" },
+      { q: "What removes the hindrance of information?", options: { A: "Advertisement", B: "Communication", C: "Trade", D: "Insurance" }, correct: "B" },
+      { q: "Who connects the link between the producers and the retailers?", options: { A: "Consumers", B: "Wholesalers", C: "Agents", D: "Brokers" }, correct: "B" },
+      { q: "Who connects the link between wholesaler and consumers?", options: { A: "Producers", B: "Retailers", C: "Manufacturers", D: "Agents" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 3,
+    title: "Sole Proprietorship",
+    questions: [
+      { q: "The arrangement of ownership and management of business organizations is termed as:", options: { A: "Corporate governance", B: "Sole trading", C: "Business organization", D: "Partnership" }, correct: "C" },
+      { q: "A sole proprietorship is also known as _____ entrepreneurship.", options: { A: "Group", B: "Individual", C: "Public", D: "Corporate" }, correct: "B" },
+      { q: "What is the oldest form of business organization?", options: { A: "Sole Proprietorship", B: "Partnership", C: "Joint Stock Company", D: "Cooperative Society" }, correct: "A" },
+      { q: "Which form of business organization has a single owner?", options: { A: "Partnership", B: "Company", C: "Cooperative", D: "Sole Proprietorship" }, correct: "D" },
+      { q: "The liability of the sole proprietor is:", options: { A: "Limited", B: "Zero", C: "Unlimited", D: "Shared" }, correct: "C" }
+    ]
+  },
+  {
+    chapterNumber: 4,
+    title: "Joint Hindu Family Business and Cooperative Society",
+    questions: [
+      { q: "The family members of three successive generations own the business jointly in the _____ business.", options: { A: "Partnership", B: "Joint Hindu family", C: "Cooperative", D: "Corporate" }, correct: "B" },
+      { q: "The membership of the JHF is acquired by _____ in the same family.", options: { A: "Marriage", B: "Agreement", C: "Birth", D: "Contract" }, correct: "C" },
+      { q: "The Joint Hindu Family business is governed by two laws viz., the:", options: { A: "Civil and Criminal", B: "State and Central", C: "Common and Statutory", D: "Dayabhaga and Mitakshara" }, correct: "D" },
+      { q: "Which Hindu law prevails in Assam and West Bengal?", options: { A: "Dayabhaga", B: "Mitakshara", C: "Common", D: "State" }, correct: "A" },
+      { q: "Which law directs that shares in the property get fluctuated by the numbers of coparceners?", options: { A: "Dayabhaga", B: "Mitakshara", C: "Civil", D: "Penal" }, correct: "B" },
+      { q: "The JHF business is governed by the Hindu Succession Act of:", options: { A: "1932", B: "1950", C: "1956", D: "2013" }, correct: "C" },
+      { q: "In a JHF business, whose liability is unlimited?", options: { A: "Coparceners", B: "Members", C: "Karta", D: "Minors" }, correct: "C" },
+      { q: "In a JHF business, membership is:", options: { A: "Unlimited", B: "Limited to 10", C: "Limited to 20", D: "Limited to 50" }, correct: "A" },
+      { q: "The term 'co-operation' is derived from the Latin word:", options: { A: "Co-operate", B: "Corpus", C: "Co-opus", D: "Co-operari" }, correct: "D" },
+      { q: "The term cooperation means working:", options: { A: "Alone", B: "Together", C: "For profit", D: "For charity" }, correct: "B" },
+      { q: "The motto of a cooperation society is 'Each for all and all for _____'.", options: { A: "One", B: "Profit", C: "Society", D: "Each" }, correct: "D" },
+      { q: "The minimum number of members required to form a cooperative society is:", options: { A: "2", B: "7", C: "10", D: "50" }, correct: "C" },
+      { q: "In the case of multi-state cooperative societies, the minimum number of members should be _____ from each state.", options: { A: "10", B: "20", C: "50", D: "100" }, correct: "C" },
+      { q: "One man-one vote exists in a _____ business.", options: { A: "Joint Stock", B: "Partnership", C: "Sole Proprietorship", D: "Cooperative" }, correct: "D" },
+      { q: "In India, cooperative societies are governed by the Cooperative Societies Act:", options: { A: "1932", B: "1956", C: "1912", D: "2013" }, correct: "C" }
+    ]
+  },
+  {
+    chapterNumber: 5,
+    title: "Partnership",
+    questions: [
+      { q: "The persons who form a partnership are individually known as:", options: { A: "Co-owners", B: "Partners", C: "Directors", D: "Shareholders" }, correct: "B" },
+      { q: "The partnership form of business organization is governed by the Indian Partnership Act of:", options: { A: "1956", B: "1912", C: "1932", D: "2013" }, correct: "C" },
+      { q: "Every partner acts as a principal as well as an:", options: { A: "Owner", B: "Agent", C: "Employee", D: "Manager" }, correct: "B" },
+      { q: "The _____ of a partnership firm is not compulsory.", options: { A: "Registration", B: "Agreement", C: "Dissolution", D: "Auditing" }, correct: "A" },
+      { q: "Which section of the Partnership Act, 1932 defines a partnership?", options: { A: "2", B: "4", C: "6", D: "10" }, correct: "B" },
+      { q: "_____ liability partnership firms are found in some European countries and USA.", options: { A: "Unlimited", B: "Limited", C: "Shared", D: "Zero" }, correct: "B" },
+      { q: "A partnership _____ is a document containing the terms and conditions of a partnership.", options: { A: "Act", B: "Form", C: "Deed", D: "Certificate" }, correct: "C" },
+      { q: "Active partners are also called _____ partners.", options: { A: "Working", B: "Sleeping", C: "Dormant", D: "Nominal" }, correct: "A" },
+      { q: "A sleeping partner is also called a _____ partner.", options: { A: "Working", B: "Active", C: "Dormant", D: "Nominal" }, correct: "C" },
+      { q: "Nominal partners are _____ to third parties for all the acts of the firm.", options: { A: "Not liable", B: "Exempt", C: "Liable", D: "Immune" }, correct: "C" },
+      { q: "The liability of partners is:", options: { A: "Limited", B: "Unlimited", C: "Zero", D: "Equal" }, correct: "B" },
+      { q: "Partners in profit apply only to _____ partners.", options: { A: "Major", B: "Minor", C: "Active", D: "Nominal" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 6,
+    title: "Fundamental Aspects of Joint Stock Company",
+    questions: [
+      { q: "The capital of a company divided into small units is called:", options: { A: "Debentures", B: "Bonds", C: "Shares", D: "Stocks" }, correct: "C" },
+      { q: "The members who invest their money by purchasing the shares of a company are known as:", options: { A: "Directors", B: "Promoters", C: "Shareholders", D: "Creditors" }, correct: "C" },
+      { q: "A company comes into existence when it is registered under the Indian Companies Act of:", options: { A: "1932", B: "2013", C: "1956", D: "1912" }, correct: "B" },
+      { q: "The elected representatives of the company who manage the day-to-day affairs of the company are called:", options: { A: "Shareholders", B: "Promoters", C: "Board of directors", D: "Managers" }, correct: "C" },
+      { q: "East India company is an example of a _____ company.", options: { A: "Chartered", B: "Statutory", C: "Registered", D: "Foreign" }, correct: "A" },
+      { q: "A company created by a special act of the parliament or legislature of any state is called a _____ company.", options: { A: "Chartered", B: "Statutory", C: "Registered", D: "Government" }, correct: "B" },
+      { q: "The minimum paid up capital of a private company is:", options: { A: "Five lakh rupees", B: "Ten lakh rupees", C: "One lakh rupees", D: "Fifty thousand rupees" }, correct: "C" },
+      { q: "The minimum paid up capital of a public company is:", options: { A: "One lakh rupees", B: "Ten lakh rupees", C: "Fifty lakh rupees", D: "Five lakh rupees" }, correct: "D" },
+      { q: "A company which controls the management of another company is called a _____ company.", options: { A: "Subsidiary", B: "Holding", C: "Statutory", D: "Chartered" }, correct: "B" },
+      { q: "A private company must suffix its name with:", options: { A: "Public limited", B: "Private limited", C: "Limited", D: "Co." }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 7,
+    title: "Formation of a Joint Stock Company",
+    questions: [
+      { q: "_____ is the process of organizing and planning the finance of a business enterprise under the corporate form.", options: { A: "Promotion", B: "Incorporation", C: "Registration", D: "Flotation" }, correct: "A" },
+      { q: "_____ is the constitution of the company.", options: { A: "Articles of Association", B: "Prospectus", C: "Certificate of Incorporation", D: "Memorandum of Association" }, correct: "D" },
+      { q: "The proposed name of a stock company should not be objectionable under the provisions of the _____ Act of 1950.", options: { A: "Companies", B: "Emblems and names", C: "Trademarks", D: "Patents" }, correct: "B" },
+      { q: "The rules and regulations framed for the internal management of the company are set out in a document named:", options: { A: "Memorandum of Association", B: "Prospectus", C: "Articles of association", D: "Partnership Deed" }, correct: "C" },
+      { q: "_____ is a substitute for the prospectus.", options: { A: "Statement in lieu of the prospectus", B: "Memorandum of Association", C: "Articles of Association", D: "Certificate of Incorporation" }, correct: "A" },
+      { q: "_____ is an amount to be collected by a public company before it allots shares.", options: { A: "Authorized capital", B: "Minimum subscription", C: "Issued capital", D: "Paid-up capital" }, correct: "B" },
+      { q: "A public limited company cannot commence its business without receiving a _____.", options: { A: "Certificate of incorporation", B: "Prospectus", C: "Certificate of commencement", D: "Trading license" }, correct: "C" },
+      { q: "A public company must get a minimum subscription within _____ days from the date of the issue of a prospectus.", options: { A: "30", B: "60", C: "90", D: "120" }, correct: "D" },
+      { q: "_____ is an invitation to the public to subscribe to the shares and debentures of a public company.", options: { A: "Memorandum of Association", B: "Prospectus", C: "Articles of Association", D: "Share certificate" }, correct: "B" },
+      { q: "Every private company must prepare its own:", options: { A: "Prospectus", B: "Articles of Association", C: "Statement in lieu of prospectus", D: "Memorandum of Association" }, correct: "B" }
+    ]
+  },
+  {
+    chapterNumber: 8,
+    title: "Business Finance",
+    questions: [
+      { q: "The requirement of funds by a business firm to accomplish its various activities is called:", options: { A: "Capital structure", B: "Working capital", C: "Business Finance", D: "Financial accounting" }, correct: "C" },
+      { q: "Funds required to purchase fixed assets in a business are called:", options: { A: "Fixed capital", B: "Working capital", C: "Circulating capital", D: "Reserve capital" }, correct: "A" },
+      { q: "Funds required for day to day operations and for holding current assets are called:", options: { A: "Fixed capital", B: "Authorized capital", C: "Issued capital", D: "Working capital" }, correct: "D" },
+      { q: "Funds required for more than one year but less than five years are called _____ source of finance.", options: { A: "Long term", B: "Medium term", C: "Short term", D: "Permanent" }, correct: "B" },
+      { q: "Funds required for more than five years are called _____ source of finance.", options: { A: "Medium term", B: "Short term", C: "Long term", D: "Working" }, correct: "C" },
+      { q: "Funds required for a period not exceeding one year are called _____ source of finance.", options: { A: "Medium term", B: "Short term", C: "Long term", D: "Fixed" }, correct: "B" },
+      { q: "_____ and _____ are two important sources of owners funds.", options: { A: "Debentures and loans", B: "Equity shares and retained earnings", C: "Preference shares and public deposits", D: "Commercial paper and bank overdraft" }, correct: "B" },
+      { q: "The capital obtained by the issue of shares is known as:", options: { A: "Debt capital", B: "Loan capital", C: "Share capital", D: "Working capital" }, correct: "C" },
+      { q: "The person holding the share is known as:", options: { A: "Debenture holder", B: "Shareholder", C: "Creditor", D: "Promoter" }, correct: "B" },
+      { q: "The two types of shares normally issued by a company are _____ shares.", options: { A: "Equity and deferred", B: "Preference and debenture", C: "Equity and preference", D: "Active and dormant" }, correct: "C" },
+      { q: "Retained earnings can also be called as:", options: { A: "Dividend distribution", B: "Ploughing back of profits", C: "Capital gearing", D: "Trading on equity" }, correct: "B" },
+      { q: "Debentures are also termed as _____ of the company.", options: { A: "Owners", B: "Debtors", C: "Creditors", D: "Promoters" }, correct: "C" },
+      { q: "ZID full form:", options: { A: "Zero interest debentures", B: "Zero income debentures", C: "Zonal internal debt", D: "Zero investment deposits" }, correct: "A" },
+      { q: "The acceptance of public deposits is regulated by:", options: { A: "SEBI", B: "Ministry of Finance", C: "Reserve bank of India", D: "State Government" }, correct: "C" },
+      { q: "_____ is an unsecured promissory note issued by a firm to raise funds for short period.", options: { A: "Treasury bill", B: "Certificate of deposit", C: "Commercial paper", D: "Trade credit" }, correct: "C" },
+      { q: "CRISIL full form:", options: { A: "Credit record and internal safety in India limited", B: "Credit rating and information service of India limited", C: "Corporate rating index system in India limited", D: "Central registry of Indian securities and investments limited" }, correct: "B" },
+      { q: "_____ shareholders are also referred to as residual owners.", options: { A: "Preference", B: "Deferred", C: "Equity", D: "Debenture" }, correct: "C" }
+    ]
+  },
+  {
+    chapterNumber: 9,
+    title: "Emerging Trends in Business",
+    questions: [
+      { q: "The integration of business tools based on ICT to improve the functioning of the company is called:", options: { A: "E-commerce", B: "E-business", C: "Digital marketing", D: "Outsourcing" }, correct: "B" },
+      { q: "The term E-business was first used by:", options: { A: "Microsoft", B: "Apple", C: "IBM", D: "Google" }, correct: "C" },
+      { q: "ICT full form is:", options: { A: "Information and communication technology", B: "Internet and computer technology", C: "Internal communication technology", D: "Information and commerce tools" }, correct: "A" },
+      { q: "COD means:", options: { A: "Cash on demand", B: "Cost of delivery", C: "Cash on delivery", D: "Cheque on delivery" }, correct: "C" },
+      { q: "P2P means peer to:", options: { A: "Public", B: "Private", C: "Peer", D: "Platform" }, correct: "C" },
+      { q: "Demonetization initiative took place in the year:", options: { A: "2014", B: "2015", C: "2016", D: "2017" }, correct: "C" },
+      { q: "E-business uses web based technology to improve relationships with:", options: { A: "Competitors", B: "Customers", C: "Government", D: "Employees" }, correct: "B" },
+      { q: "Transacting or facilitating business through the internet is called:", options: { A: "E-trading", B: "E-business", C: "E-marketing", D: "E-commerce" }, correct: "D" },
+      { q: "_____ provides a platform for buying and selling of goods without having any geographical barriers.", options: { A: "E-commerce", B: "E-trading", C: "E-marketing", D: "E-business" }, correct: "C" },
+      { q: "_____ is used for buying and selling stocks in stock market.", options: { A: "E-commerce", B: "E-trading", C: "E-business", D: "E-marketing" }, correct: "B" },
+      { q: "The turning point to speed up online transactions in India was _____ in 2016.", options: { A: "Digital India", B: "Demonetization", C: "Make in India", D: "GST" }, correct: "B" },
+      { q: "Online transaction stages are pre-purchases, purchase and _____ stages.", options: { A: "Payment", B: "Return", C: "Delivery", D: "Feedback" }, correct: "C" },
+      { q: "Order issue is one type of _____ risk.", options: { A: "Data", B: "Network", C: "Transaction", D: "System" }, correct: "C" },
+      { q: "Virus and _____ come under the data storage and transmission risks.", options: { A: "Phishing", B: "Hacking", C: "Spam", D: "Piracy" }, correct: "B" }
+    ]
+  }
+];
+
+/* STATE */
+let currentChapterData = null;
+let currentIndex=0, score=0;
+let selectedChoice=null, answered={};
+let voice=null;
+
+/* VOICE (BULLETPROOF FEMALE + BUG FIX + BLANK FILTER) */
+function initVoice(){
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) return;
+
+  // Try to find a clear female/Indian English voice
+  voice = voices.find(v => 
+    v.name.includes("Neerja") || 
+    v.name.includes("Heera") || 
+    v.name.includes("Veena") || 
+    v.name.includes("Google UK English Female") || 
+    v.name.includes("Zira") || 
+    v.name.includes("female")
+  );
+
+  // Fallback if none of the above are found
+  if (!voice) {
+    voice = voices.find(v => v.lang.startsWith("en")) || voices[0];
+  }
+}
+
+// Ensure voices load properly on all browsers
+window.speechSynthesis.onvoiceschanged = initVoice;
+
+function stopSound(){
+  window.speechSynthesis.cancel();
+}
+
+function speak(text){
+  stopSound();
+  
+  if (!voice) initVoice();
+
+  // Replaces underscores with the word "blank"
+  const cleanText = text.replace(/_+/g, " blank ");
+
+  const u = new SpeechSynthesisUtterance(cleanText);
+  
+  // FORCE the language to Indian English (defaults to a clear female voice on most devices)
+  u.lang = 'en-IN';
+  
+  if (voice) u.voice = voice;
+
+  u.rate = 1.0; 
+  u.pitch = 1.0;
+  u.volume = 1.0;
+
+  // CHROME BUG FIX: Prevents the browser from silently deleting the audio before playing
+  window.speechUtteranceChunk = u;
+
+  window.speechSynthesis.speak(u);
+}
+/* DYNAMIC MENU RENDER */
+function renderMenu() {
+  const grid = document.getElementById("menuGrid");
+  grid.innerHTML = "";
+  
+  chaptersData.forEach((ch, index) => {
+    const card = document.createElement("div");
+    card.className = "menu-card";
+    card.onclick = () => startChapter(index);
+    
+    card.innerHTML = `
+      <div>Chapter ${ch.chapterNumber}: ${ch.title}</div>
+      <span class="q-count">${ch.questions.length} Qs</span>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+/* CHAPTER LOGIC */
+function startChapter(index){
+  currentChapterData = chaptersData[index];
+  
+  document.getElementById("homeScreen").classList.add("hidden");
+  document.getElementById("quizScreen").classList.remove("hidden");
+
+  document.getElementById("chapterTitle").innerText = `Chapter ${currentChapterData.chapterNumber}: ${currentChapterData.title}`;
+
+  currentIndex = 0;
+  score = 0;
+  answered = {};
+  loadQuestion();
+}
+
+function loadQuestion(){
+  selectedChoice = null;
+  const q = currentChapterData.questions[currentIndex];
+  const totalQs = currentChapterData.questions.length;
+
+  document.getElementById("qText").innerText = q.q;
+  document.getElementById("progressLabel").innerText = `Question ${currentIndex+1} / ${totalQs}`;
+
+  document.getElementById("optionsBox").innerHTML =
+    ["A","B","C","D"].map((l,i)=>`
+      <div class="option" id="opt-${l}" onclick="selectOption('${l}')">
+        <strong>${i+1}.</strong> ${q.options[l]}
+      </div>
+    `).join("");
+
+  repeatQuestion();
+}
+
+function repeatQuestion(){
+  const q = currentChapterData.questions[currentIndex];
+  speak(
+    `Question ${currentIndex+1}. ${q.q}.
+     Option 1. ${q.options.A}.
+     Option 2. ${q.options.B}.
+     Option 3. ${q.options.C}.
+     Option 4. ${q.options.D}.`
+  );
+}
+
+function selectOption(letter){
+  if (answered[currentIndex]) return;
+
+  selectedChoice = letter;
+  document.querySelectorAll(".option").forEach(o=>o.classList.remove("selected"));
+  document.getElementById(`opt-${letter}`).classList.add("selected");
+
+  speak(`You selected ${currentChapterData.questions[currentIndex].options[letter]}. Press Enter to confirm.`);
+}
+
+function confirmAnswer(){
+  if (!selectedChoice || answered[currentIndex]) return;
+
+  const q = currentChapterData.questions[currentIndex];
+  const correct = q.correct;
+  answered[currentIndex] = true;
+
+  if (selectedChoice === correct){
+    score++;
+    document.getElementById(`opt-${selectedChoice}`).classList.add("correct");
+    speak(`Correct. ${q.options[correct]}`);
+  } else {
+    document.getElementById(`opt-${selectedChoice}`).classList.add("wrong");
+    document.getElementById(`opt-${correct}`).classList.add("correct");
+    speak(`Incorrect. The correct answer is ${q.options[correct]}`);
+  }
+}
+
+function nextQuestion(){
+  const totalQs = currentChapterData.questions.length;
+  if (currentIndex < totalQs - 1){
+    currentIndex++;
+    loadQuestion();
+  } else {
+    speak(`Chapter completed. Your score is ${score} out of ${totalQs}.`);
+  }
+}
+
+function prevQuestion(){
+  if (currentIndex > 0){
+    currentIndex--;
+    loadQuestion();
+  }
+}
+
+function goHome(){
+  stopSound();
+  location.reload();
+}
+
+/* KEYBOARD CONTROLS FOR VISUALLY IMPAIRED STUDENTS */
+window.addEventListener("keydown", e => {
+  
+  // 1. Prevent default browser behavior 
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight", "Enter"].indexOf(e.key) > -1) {
+      e.preventDefault();
+  }
+
+  // 2. Selection Keys
+  if (e.key === "1") selectOption("A");
+  if (e.key === "2") selectOption("B");
+  if (e.key === "3") selectOption("C");
+  if (e.key === "4") selectOption("D");
+  
+  // 3. Confirm Key (Will ONLY confirm, never advance)
+  if (e.key === "Enter") confirmAnswer(); 
+  
+  // 4. Navigation Keys
+  if (e.key === "ArrowRight") nextQuestion(); // Move forward
+  if (e.key === "ArrowLeft") prevQuestion();  // Move backward
+  
+  // 5. Audio & Home Controls
+  if (e.key === "ArrowUp") repeatQuestion();  // Hear the question using Up Arrow
+  if (e.key === "ArrowDown") stopSound();     // Immediately mute the audio
+  if (e.key.toLowerCase() === "r") repeatQuestion(); // Hear the question using 'R' key
+  if (e.key.toLowerCase() === "h") goHome();         // Return to Home menu using 'H' key
+});
+window.onload = () => {
+  initVoice();
+  renderMenu();
+};
+</script>
+
+</body>
+</html>
