@@ -1,181 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>V Software Suite</title>
-    <style>
-        :root {
-            --sidebar-width: 260px;
-            --sidebar-bg: #2c3e50;
-            --highlight: #f39c12; /* Orange Accent */
-            --link-hover: #34495e;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V Software Suite</title>
 
-        body { 
-            font-family: 'Segoe UI', Tahoma, sans-serif; 
-            margin: 0; padding: 0;
-            background: #f8f9fa;
-            display: flex; 
-            height: 100vh;
-            overflow: hidden;
-        }
+<style>
+:root {
+    --sidebar-width: 260px;
+    --sidebar-bg: #2c3e50;
+    --highlight: #f39c12;
+    --link-hover: #34495e;
+}
 
-        /* --- SIDEBAR --- */
-        .sidebar {
-            width: var(--sidebar-width);
-            background: var(--sidebar-bg);
-            color: white;
-            padding: 20px;
-            flex-shrink: 0; 
-            display: flex;
-            flex-direction: column;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
-            z-index: 20;
-        }
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    display: flex;
+    height: 100vh;
+}
 
-        .sidebar h2 { 
-            font-size: 1.2rem; 
-            border-bottom: 1px solid #455a64; 
-            padding-bottom: 15px; 
-            margin-bottom: 10px;
-            text-align: center;
-        }
+/* SIDEBAR */
+.sidebar {
+    width: var(--sidebar-width);
+    background: var(--sidebar-bg);
+    color: white;
+    padding: 20px;
+}
 
-        .category-label {
-            font-size: 0.75rem; color: #7f8c8d;
-            margin-top: 15px; text-transform: uppercase;
-        }
+.sidebar h2 {
+    text-align: center;
+    border-bottom: 1px solid #555;
+    padding-bottom: 10px;
+}
 
-        .nav-link {
-            display: block; color: #bdc3c7;
-            text-decoration: none; padding: 12px;
-            margin: 4px 0; border-radius: 8px;
-            border-left: 5px solid transparent;
-        }
+.nav-link {
+    display: block;
+    color: #ccc;
+    text-decoration: none;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 6px;
+}
 
-        .nav-link:hover { background: var(--link-hover); color: white; }
+.nav-link:hover {
+    background: var(--link-hover);
+    color: white;
+}
 
-        /* --- ACTIVE TAB HIGHLIGHTER --- */
-        #target-nethra:target ~ .sidebar [href="#target-nethra"],
-        #target-accounts-blank:target ~ .sidebar [href="#target-accounts-blank"],
-        #target-eco-mcq:target ~ .sidebar [href="#target-eco-mcq"],
-        #target-eco-blank:target ~ .sidebar [href="#target-eco-blank"],
-        #target-civics:target ~ .sidebar [href="#target-civics"],
-        #target-comm:target ~ .sidebar [href="#target-comm"],
-        #target-hist:target ~ .sidebar [href="#target-hist"] {
-            background: #1a252f;
-            color: white;
-            border-left: 5px solid var(--highlight);
-        }
+/* MAIN */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
 
-        /* --- MAIN VIEWPORT --- */
-        .main-view {
-            flex-grow: 1; 
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            position: relative;
-        }
+.header {
+    background: white;
+    padding: 15px;
+    border-bottom: 2px solid var(--highlight);
+}
 
-        .fancy-header {
-            background: white;
-            padding: 15px 30px;
-            border-bottom: 2px solid var(--highlight);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            z-index: 15;
-        }
+.content {
+    flex: 1;
+}
 
-        .fancy-header h1 { margin: 0; font-size: 1.5rem; color: var(--sidebar-bg); }
-        .fancy-header h1 span { color: var(--highlight); }
-
-        /* --- DISPLAY LOGIC --- */
-        .doc-container {
-            position: absolute;
-            top: 65px; left: 0;
-            width: 100%;
-            height: calc(100% - 65px);
-            display: none; 
-        }
-
-        /* Show based on Target */
-        #target-nethra:target ~ .main-view #view-nethra,
-        #target-accounts-blank:target ~ .main-view #view-accounts-blank,
-        #target-eco-mcq:target ~ .main-view #view-eco-mcq,
-        #target-eco-blank:target ~ .main-view #view-eco-blank,
-        #target-civics:target ~ .main-view #view-civics,
-        #target-comm:target ~ .main-view #view-comm,
-        #target-hist:target ~ .main-view #view-hist {
-            display: block;
-        }
-
-        /* Default Selection */
-        .main-view #view-nethra { display: block; }
-        :target ~ .main-view #view-nethra { display: none; }
-        #target-nethra:target ~ .main-view #view-nethra { display: block; }
-
-        iframe { width: 100%; height: 100%; border: none; }
-    </style>
+/* iframe */
+iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+</style>
 </head>
+
 <body>
 
-    <div id="target-nethra"></div>
-    <div id="target-accounts-blank"></div>
-    <div id="target-eco-mcq"></div>
-    <div id="target-eco-blank"></div>
-    <div id="target-civics"></div>
-    <div id="target-comm"></div>
-    <div id="target-hist"></div>
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <h2>Study Hub</h2>
 
-    <nav class="sidebar">
-        <h2>Study Hub</h2>
-        
-        <div class="category-label">Accounts</div>
-        <a href="#target-nethra" class="nav-link">📁 Accounting </a>
-        
-        
-        <div class="category-label">Economics (JAIIB)</div>
-        <a href="#target-eco-mcq" class="nav-link">📊 Economics</a>
-        
-        
-        <div class="category-label">Social Sciences</div>
-        <a href="#target-civics" class="nav-link">🏛️ Civics</a>
-        <a href="#target-hist" class="nav-link">📜 History</a>
+    <a href="#" class="nav-link" onclick="loadPage('home')">🏠 Home</a>
+    <a href="#" class="nav-link" onclick="loadPage('Accounting.html')">📁 Accounting</a>
+    <a href="#" class="nav-link" onclick="loadPage('Economics.html')">📊 Economics</a>
+    <a href="#" class="nav-link" onclick="loadPage('civics.html')">🏛️ Civics</a>
+    <a href="#" class="nav-link" onclick="loadPage('History.html')">📜 History</a>
+    <a href="#" class="nav-link" onclick="loadPage('commerce.html')">💼 Commerce</a>
+</div>
 
-        <div class="category-label">Business</div>
-        <a href="#target-comm" class="nav-link">💼 Commerce</a>
-    </nav>
+<!-- MAIN -->
+<div class="main">
 
-    <main class="main-view">
-        <header class="fancy-header">
-            <h1><span>V</span> SOFTWARE SUITE</h1>
-        </header>
+    <div class="header">
+        <h1>V Software Suite</h1>
+    </div>
 
-        <div id="view-nethra" class="doc-container"><iframe src="Accounting.html"></iframe></div>
-        
-        <div id="view-eco-mcq" class="doc-container"><iframe src="Economics.html"></iframe></div>
-       
-        <div id="view-civics" class="doc-container"><iframe src="civics.html"></iframe></div>
-        <div id="view-comm" class="doc-container"><iframe src="commerce.html"></iframe></div>
-        <div id="view-hist" class="doc-container"><iframe src="History.html"></iframe></div>
-    </main>
+    <div class="content" id="content">
 
-    <script>
-        // UNIVERSAL MUTE: Kills audio from any iframe when you switch tabs
-        window.addEventListener('hashchange', function() {
-            window.speechSynthesis.cancel();
-            console.log("Audio stopped: Navigation occurred.");
-        });
+        <!-- Default Home Screen -->
+        <div id="home">
+            <div style="padding:20px;">
+                <h2>Welcome 👋</h2>
+                <p>Select a subject from the sidebar</p>
+            </div>
+        </div>
 
-        // Backup stop when clicking sidebar links directly
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', () => {
-                window.speechSynthesis.cancel();
-            });
-        });
-    </script>
+        <!-- Iframe -->
+        <iframe id="frame" style="display:none;"></iframe>
+
+    </div>
+
+</div>
+
+<script>
+function loadPage(page) {
+    const frame = document.getElementById("frame");
+    const home = document.getElementById("home");
+
+    if (page === 'home') {
+        frame.style.display = "none";
+        home.style.display = "block";
+    } else {
+        frame.src = page;
+        frame.style.display = "block";
+        home.style.display = "none";
+    }
+}
+</script>
 
 </body>
 </html>
